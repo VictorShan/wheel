@@ -1,4 +1,5 @@
 import { lobbyRouter } from "~/server/api/routers/lobby";
+import { itemRouter } from "~/server/api/routers/items";
 import { createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -8,6 +9,7 @@ import { createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   lobbies: lobbyRouter,
+  items: itemRouter,
 });
 
 // export type definition of API

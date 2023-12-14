@@ -3,6 +3,7 @@ import Wheel, { type WheelItem } from "~/app/_components/Wheel";
 import { api } from "~/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "~/server/api/root";
+import { AddItem } from "../_components/add-item";
 
 type ApiOutput = inferRouterOutputs<AppRouter>;
 type LobbyInfo = ApiOutput["lobbies"]["getLobbyInfo"];
@@ -26,6 +27,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
               <li key={item.longName}>{item.longName}</li>
             ))}
           </ul>
+          <AddItem lobbyCuid={params.wheelId} />
         </div>
       </div>
     </article>
@@ -39,7 +41,7 @@ function generateWheelItems(data: LobbyInfo): WheelItem[] {
     wheelItems.push({
       longName: item.longName,
       shortName: item.shortName,
-      weight: Math.max(item.upvotes - item.downvotes, 0),
+      weight: Math.max(item.upvotes - item.downvotes, 1),
       callback: () => console.log(item.longName),
     });
   });
