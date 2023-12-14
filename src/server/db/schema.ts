@@ -47,14 +47,14 @@ export const items = mysqlTable(
   {
     id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
     lobbyCuid: varchar("lobby_cuid", { length: 64 }).notNull(),
-    longName: varchar("name", { length: 256 }),
+    longName: varchar("name", { length: 256 }).notNull(),
     shortName: varchar("short_name", { length: 20 }),
     createdAt: timestamp("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     updatedAt: timestamp("updatedAt").onUpdateNow(),
-    upvotes: bigint("upvotes", { mode: "number" }).default(0),
-    downvotes: bigint("downvotes", { mode: "number" }).default(0),
+    upvotes: bigint("upvotes", { mode: "number" }).default(0).notNull(),
+    downvotes: bigint("downvotes", { mode: "number" }).default(0).notNull(),
     url: varchar("url", { length: 512 }),
     imageUrl: varchar("image_url", { length: 512 }),
   },

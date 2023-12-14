@@ -1,13 +1,15 @@
 "use client";
 
-import { use, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export type WheelProps = {
   wheelItems: WheelItem[];
 };
 
 export type WheelItem = {
-  name: string;
+  longName: string;
+  shortName?: string | null;
+  url?: string;
   weight: number;
   callback: () => void;
 };
@@ -116,7 +118,7 @@ export default function Wheel({ wheelItems }: WheelProps) {
       ctx.font = "20px Arial";
       ctx.textAlign = "center";
       ctx.fillStyle = "white";
-      ctx.fillText(item.name, 0, 0);
+      ctx.fillText(item.longName, 0, 0);
       ctx.restore();
     });
     // add a white circle in the middle

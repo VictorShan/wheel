@@ -50,7 +50,10 @@ export const lobbyRouter = createTRPCRouter({
     }),
   getLobbyInfo: publicProcedure
     .input(z.object({ lobbyCuid: z.string() }))
-    .query(({ ctx, input }) => {
+    .query(async ({ ctx, input }) => {
+      await ctx.db.update(lobbies).set({
+        lastReadAt: new Date(),
+      });
       return ctx.db.query.lobbies.findFirst({
         where: eq(lobbies.cuid, input.lobbyCuid),
         with: {
