@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 
 export type WheelProps = {
   wheelItems: WheelItem[];
@@ -17,7 +17,8 @@ const VELOCITY_DECAY = 0.05;
 
 export default function Wheel({ wheelItems }: WheelProps) {
   const total = wheelItems.reduce((acc, item) => acc + item.weight, 0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wheelRef = useRef<HTMLCanvasElement>(null);
+  const markerRef = useRef<HTMLCanvasElement>(null);
   const rotation = useRef(0);
   const velocity = useRef(0);
 
@@ -27,7 +28,8 @@ export default function Wheel({ wheelItems }: WheelProps) {
   };
 
   const selectItem = () => {
-    const angle = rotation.current % 360;
+    // Selects the item that is at the right of the wheel
+    const angle = (360 - rotation.current) % 360;
     let startAngle = 0;
     let endAngle = 0;
     wheelItems.forEach((item, i) => {
@@ -40,9 +42,9 @@ export default function Wheel({ wheelItems }: WheelProps) {
   };
 
   const spin = () => {
-    if (!canvasRef.current) return;
+    if (!wheelRef.current) return;
     rotation.current = (rotation.current + velocity.current) % 360;
-    canvasRef.current.style.transform = `rotate(${rotation.current}deg)`;
+    wheelRef.current.style.transform = `rotate(${rotation.current}deg)`;
 
     const req = requestAnimationFrame(spin);
     if (Math.abs(velocity.current) < VELOCITY_DECAY) {
@@ -57,7 +59,29 @@ export default function Wheel({ wheelItems }: WheelProps) {
   };
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    // draw a triangle at the right of the wheel
+    const canvas = markerRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const radius = width * 0.1;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const startAngle = (-0.1 * Math.PI) % (2 * Math.PI);
+    const endAngle = (0.1 * Math.PI) % (2 * Math.PI);
+    ctx.beginPath();
+    ctx.arc(width - radius + 5, centerY, radius, startAngle, endAngle);
+    ctx.lineTo(width - radius, centerY);
+    ctx.fillStyle = "black";
+    ctx.fill();
+  }, [markerRef]);
+
+  useEffect(() => {
+    const canvas = wheelRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
@@ -104,21 +128,20 @@ export default function Wheel({ wheelItems }: WheelProps) {
     ctx.fillStyle = "white";
     ctx.fill();
     // ctx.stroke();
-  }, [canvasRef, wheelItems]);
+  }, [wheelRef, wheelItems]);
 
   return (
     <div className="p-4">
       <h1>Wheel</h1>
-      <canvas
-        ref={canvasRef}
-        width="500"
-        height="500"
-        style={{
-          border: "1px solid black",
-          transform: `rotate(${rotation.current % 360}deg)`,
-        }}
-        onClick={startSpin}
-      />
+      <div className="relative">
+        <canvas ref={wheelRef} width="500" height="500" onClick={startSpin} />
+        <canvas
+          ref={markerRef}
+          width="500"
+          height="500"
+          className="h-100 w-100 z-1 pointer-events-none absolute top-0"
+        />
+      </div>
     </div>
   );
 }
