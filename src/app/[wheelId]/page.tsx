@@ -14,11 +14,26 @@ const randomItems: WheelItem[] = [
   {
     name: "Item 1",
     weight: 1,
-    callback: () => {},
+    callback: () => console.log("Item 1")
   },
   {
     name: "Item 2",
     weight: 1,
-    callback: () => {},
-  }
+    callback: () => console.log("Item 2")
+  },
+  {
+    name: "Item 3",
+    weight: 1.5,
+    callback: () => console.log("Item 3")
+  },
+  {
+    name: "Item 4",
+    weight: 1.5,
+    callback: () => console.log("Item 4")
+  },
+  {
+    name: "Item 5",
+    weight: 1.5,
+    callback: () => console.log("Item 5")
+  },
 ]
