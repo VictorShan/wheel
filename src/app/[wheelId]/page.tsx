@@ -1,8 +1,8 @@
 "use client";
-import Wheel, { WheelItem } from "~/app/_components/Wheel";
+import Wheel, { type WheelItem } from "~/app/_components/Wheel";
 import { api } from "~/trpc/react";
 import type { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "~/server/api/root";
+import type { AppRouter } from "~/server/api/root";
 
 type ApiOutput = inferRouterOutputs<AppRouter>;
 type LobbyInfo = ApiOutput["lobbies"]["getLobbyInfo"];
@@ -14,7 +14,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
   const wheelItems = generateWheelItems(lobbyInfo.data);
   return (
     <article className="p-10">
-      <h1>Page {lobbyInfo.data?.name || params.wheelId}</h1>
+      <h1>Page {lobbyInfo.data?.name ?? params.wheelId}</h1>
       <div className="flex">
         <div>
           <Wheel wheelItems={wheelItems} />
@@ -34,7 +34,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
 
 function generateWheelItems(data: LobbyInfo): WheelItem[] {
   const wheelItems: WheelItem[] = [];
-  if (!data || !data.items) return randomItems;
+  if (!data?.items) return randomItems;
   data.items.forEach((item) => {
     wheelItems.push({
       longName: item.longName,
