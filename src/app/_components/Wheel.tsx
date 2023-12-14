@@ -19,11 +19,11 @@ export default function Wheel({ wheelItems }: WheelProps) {
   const total = wheelItems.reduce((acc, item) => acc + item.weight, 0);
   const wheelRef = useRef<HTMLCanvasElement>(null);
   const markerRef = useRef<HTMLCanvasElement>(null);
-  const rotation = useRef(0);
+  const rotation = useRef(Math.random() * 360);
   const velocity = useRef(0);
 
   const startSpin = () => {
-    velocity.current = Math.random() * 10 + 10;
+    velocity.current = Math.random() * 20 + 10;
     spin();
   };
 
@@ -69,7 +69,6 @@ export default function Wheel({ wheelItems }: WheelProps) {
     const width = canvas.width;
     const height = canvas.height;
     const radius = width * 0.1;
-    const centerX = width / 2;
     const centerY = height / 2;
     const startAngle = (-0.1 * Math.PI) % (2 * Math.PI);
     const endAngle = (0.1 * Math.PI) % (2 * Math.PI);
@@ -83,6 +82,7 @@ export default function Wheel({ wheelItems }: WheelProps) {
   useEffect(() => {
     const canvas = wheelRef.current;
     if (!canvas) return;
+    canvas.style.transform = `rotate(${rotation.current}deg)`;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -94,9 +94,6 @@ export default function Wheel({ wheelItems }: WheelProps) {
     const centerY = height / 2;
 
     ctx.clearRect(0, 0, width, height);
-    // ctx.beginPath();
-    // ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    // ctx.stroke();
 
     let startAngle = 0;
     let endAngle = 0;
@@ -127,7 +124,6 @@ export default function Wheel({ wheelItems }: WheelProps) {
     ctx.arc(centerX, centerY, radius * 0.05, 0, 2 * Math.PI);
     ctx.fillStyle = "white";
     ctx.fill();
-    // ctx.stroke();
   }, [wheelRef, wheelItems]);
 
   return (
