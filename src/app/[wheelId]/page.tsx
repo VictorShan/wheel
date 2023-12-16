@@ -1,18 +1,24 @@
 "use client";
-import Wheel, { type WheelItem } from "~/app/_components/Wheel";
+import Wheel, { WheelItem } from "~/app/_components/Wheel";
 import { api } from "~/trpc/react";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "~/server/api/root";
 import { AddItem } from "../_components/add-item";
-
-type ApiOutput = inferRouterOutputs<AppRouter>;
-type LobbyInfo = ApiOutput["lobbies"]["getLobbyInfo"];
+import { useState } from "react";
+import { type Item } from "../_components/types";
+import Modal from "../_components/Modal";
+import ListItem from "../_components/ListItem";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
+  const [item, setItem] = useState<Item>();
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery({
     lobbyCuid: params.wheelId,
   });
-  const wheelItems = generateWheelItems(lobbyInfo.data);
+  const wheelItems = generateWheelItems(lobbyInfo.data?.items, (i: number) => {
+    if (!lobbyInfo.data?.items || i >= lobbyInfo.data.items.length || i < 0) {
+      setItem(undefined);
+    } else {
+      setItem(lobbyInfo.data.items[i]);
+    }
+  });
   return (
     <article className="p-10">
       <h1>Page {lobbyInfo.data?.name ?? params.wheelId}</h1>
@@ -20,29 +26,37 @@ export default function Page({ params }: { params: { wheelId: string } }) {
         <div>
           <Wheel wheelItems={wheelItems} />
         </div>
-        <div>
+        <div className="p-5">
+          <h2>Add Items</h2>
+          <AddItem lobbyCuid={params.wheelId} />
           <h2>Items</h2>
           <ul>
-            {wheelItems.map((item) => (
-              <li key={item.longName}>{item.longName}</li>
+            {lobbyInfo.data?.items.map((item) => (
+              <ListItem item={item} key={item.id} />
             ))}
           </ul>
-          <AddItem lobbyCuid={params.wheelId} />
         </div>
       </div>
+      <Modal item={item} />
     </article>
   );
 }
 
-function generateWheelItems(data: LobbyInfo): WheelItem[] {
+function generateWheelItems(
+  items: Item[] | undefined,
+  selectItem: (i: number) => void,
+): WheelItem[] {
   const wheelItems: WheelItem[] = [];
-  if (!data?.items) return randomItems;
-  data.items.forEach((item) => {
+  items?.forEach((item, i) => {
+    const dateDiff = Date.now() - item.lastSelectedAt.getTime();
+    const daysSinceLastSelected = Math.ceil(dateDiff / (1000 * 60 * 60 * 24));
+    const daysSinceLastSelectedWeight = Math.min(1, daysSinceLastSelected / 5);
+    const weight = Math.max(item.upvotes, 1);
     wheelItems.push({
       longName: item.longName,
       shortName: item.shortName,
-      weight: Math.max(item.upvotes - item.downvotes, 1),
-      callback: () => console.log(item.longName),
+      weight: weight * daysSinceLastSelectedWeight,
+      callback: () => selectItem(i),
     });
   });
   if (wheelItems.length === 0) return randomItems;

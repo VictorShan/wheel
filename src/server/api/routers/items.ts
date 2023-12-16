@@ -44,4 +44,34 @@ export const itemRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(items).where(eq(items.id, input.itemId)).execute();
     }),
+  selectItem: publicProcedure
+    .input(z.object({ itemId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(items)
+        .set({
+          lastSelectedAt: new Date(),
+        })
+        .where(eq(items.id, input.itemId))
+        .execute();
+    }),
+  adjustVotes: publicProcedure
+    .input(
+      z.object({
+        itemId: z.number(),
+        upvotes: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const item = await ctx.db.query.items.findFirst({
+        where: eq(items.id, input.itemId),
+      });
+      await ctx.db
+        .update(items)
+        .set({
+          upvotes: input.upvotes + item!.upvotes,
+        })
+        .where(eq(items.id, input.itemId))
+        .execute();
+    }),
 });

@@ -54,9 +54,9 @@ export const items = mysqlTable(
       .notNull(),
     updatedAt: timestamp("updatedAt").onUpdateNow(),
     upvotes: bigint("upvotes", { mode: "number" }).default(0).notNull(),
-    downvotes: bigint("downvotes", { mode: "number" }).default(0).notNull(),
     url: varchar("url", { length: 512 }),
     imageUrl: varchar("image_url", { length: 512 }),
+    lastSelectedAt: timestamp("last_selected_at").defaultNow().notNull(),
   },
   (example) => ({
     nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
