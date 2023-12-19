@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Item } from "./types";
+import { type Item } from "./types";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Channel } from "pusher-js";
+import type { Channel } from "pusher-js";
 import { PusherClient } from "~/config/Pusher";
 
 export function usePusher(
   channelName: string,
   eventName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: (data: any) => void,
 ) {
   const [channel, setChannel] = useState<Channel>();

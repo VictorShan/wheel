@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Item } from "./types";
+import { type Item } from "./types";
 
 export default function Modal({ item }: { item?: Item }) {
   const modalRef = useRef<HTMLDialogElement>(null);

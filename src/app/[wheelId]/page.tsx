@@ -1,5 +1,5 @@
 "use client";
-import Wheel, { WheelItem } from "~/app/_components/Wheel";
+import Wheel, { type WheelItem } from "~/app/_components/Wheel";
 import { api } from "~/trpc/react";
 import { AddItem } from "../_components/add-item";
 import { useState } from "react";
@@ -15,8 +15,8 @@ export default function Page({ params }: { params: { wheelId: string } }) {
     lobbyCuid: params.wheelId,
   });
 
-  const updateSelected = (data: any) => {
-    if (data.item) {
+  const updateSelected = (data: { item: Item }) => {
+    if (data?.item) {
       const selectedItem = data.item;
       // TODO: Make this less hacky
       setItem({
