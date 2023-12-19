@@ -6,17 +6,30 @@ import { useState } from "react";
 import { type Item } from "../_components/types";
 import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
+import { usePusher } from "~/app/_components/usePusher";
+import { SELECTED_CHANNEL } from "~/config/Pusher";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [item, setItem] = useState<Item>();
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery({
     lobbyCuid: params.wheelId,
   });
+  const selectedChannel = usePusher(
+    params.wheelId,
+    SELECTED_CHANNEL,
+    (data) => {
+      console.log(data);
+      lobbyInfo.refetch();
+    },
+  );
   const wheelItems = generateWheelItems(lobbyInfo.data?.items, (i: number) => {
     if (!lobbyInfo.data?.items || i >= lobbyInfo.data.items.length || i < 0) {
       setItem(undefined);
     } else {
-      setItem(lobbyInfo.data.items[i]);
+      setItem({ ...lobbyInfo.data.items[i]! });
+      selectedChannel.trigger(SELECTED_CHANNEL, {
+        item: lobbyInfo.data.items[i],
+      });
     }
   });
   return (
