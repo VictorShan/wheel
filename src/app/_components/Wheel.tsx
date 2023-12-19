@@ -25,6 +25,8 @@ export default function Wheel({ wheelItems }: WheelProps) {
   const velocity = useRef(0);
 
   const startSpin = () => {
+    if (!wheelRef.current) return;
+    if (velocity.current !== 0) return;
     velocity.current = Math.random() * 20 + 10;
     spin();
   };

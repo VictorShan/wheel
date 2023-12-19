@@ -14,13 +14,25 @@ export default function Page({ params }: { params: { wheelId: string } }) {
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery({
     lobbyCuid: params.wheelId,
   });
+
+  const updateSelected = (data: any) => {
+    if (data.item) {
+      const selectedItem = data.item;
+      // TODO: Make this less hacky
+      setItem({
+        ...data.item,
+        lastSelectedAt:
+          selectedItem.lastSelectedAt && new Date(selectedItem.lastSelectedAt),
+        createdAt: selectedItem.createdAt && new Date(selectedItem.createdAt),
+        updatedAt: selectedItem.updatedAt && new Date(selectedItem.updatedAt),
+      });
+    }
+  };
+
   const selectedChannel = usePusher(
     params.wheelId,
     SELECTED_CHANNEL,
-    (data) => {
-      console.log(data);
-      lobbyInfo.refetch();
-    },
+    updateSelected,
   );
   const wheelItems = generateWheelItems(lobbyInfo.data?.items, (i: number) => {
     if (!lobbyInfo.data?.items || i >= lobbyInfo.data.items.length || i < 0) {
