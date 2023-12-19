@@ -17,7 +17,9 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    CLERK_SECRET_KEY: z.string(),
+    CLERK_SECRET_KEY: z.string().min(1),
+    SOKETI_SECRET: z.string().min(1),
+    SOKETI_APP_ID: z.string().min(1),
   },
 
   /**
@@ -43,6 +45,8 @@ export const env = createEnv({
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     NEXT_PUBLIC_SOKETI_URL: process.env.NEXT_PUBLIC_SOKETI_URL,
     NEXT_PUBLIC_SOKETI_KEY: process.env.NEXT_PUBLIC_SOKETI_KEY,
+    SOKETI_SECRET: process.env.SOKETI_SECRET,
+    SOKETI_APP_ID: process.env.SOKETI_APP_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

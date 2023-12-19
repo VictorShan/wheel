@@ -3,6 +3,8 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { lobbies, items } from "~/server/db/schema";
 import { init } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
+import { PusherServer } from "~/config/PusherServer";
+import { SPIN_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 
 const create = init({
   fingerprint: "lobby",
@@ -60,5 +62,32 @@ export const lobbyRouter = createTRPCRouter({
           items: true,
         },
       });
+    }),
+  spin: publicProcedure
+    .input(
+      z.object({
+        lobbyCuid: z.string(),
+        initialRotation: z.number(),
+        initialVelocity: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const itemIds = (
+        await ctx.db.query.items.findMany({
+          where: eq(items.lobbyCuid, input.lobbyCuid),
+        })
+      ).map((item) => item.id);
+      const spin = {
+        itemIds: itemIds.sort(),
+        intialRotation: input.initialRotation,
+        initialVelocity: input.initialVelocity,
+      };
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        SPIN_EVENT,
+        {
+          spin,
+        },
+      );
     }),
 });

@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { SPIN_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { usePusher } from "./usePusher";
+import type { Spin } from "./types";
+import { api } from "~/trpc/react";
 
 export type WheelProps = {
   wheelItems: WheelItem[];
+  lobbyCuid: string;
 };
 
 export type WheelItem = {
@@ -17,18 +22,39 @@ export type WheelItem = {
 const COLORS = ["red", "blue", "green", "orange"];
 const VELOCITY_DECAY = 0.05;
 
-export default function Wheel({ wheelItems }: WheelProps) {
+export default function Wheel({ wheelItems, lobbyCuid }: WheelProps) {
+  wheelItems.sort((a, b) => a.weight - b.weight);
+  const startSpinApi = api.lobbies.spin.useMutation({
+    onMutate: () => {
+      spin();
+    },
+  });
   const total = wheelItems.reduce((acc, item) => acc + item.weight, 0);
   const wheelRef = useRef<HTMLCanvasElement>(null);
   const markerRef = useRef<HTMLCanvasElement>(null);
   const rotation = useRef(Math.random() * 360);
   const velocity = useRef(0);
+  usePusher(
+    getLobbyChannelName(lobbyCuid),
+    SPIN_EVENT,
+    (data: { spin: Spin }) => {
+      if (!wheelRef.current) return;
+      if (velocity.current !== 0) return;
+      rotation.current = data.spin.intialRotation;
+      velocity.current = data.spin.initialVelocity;
+      spin();
+    },
+  );
 
   const startSpin = () => {
     if (!wheelRef.current) return;
     if (velocity.current !== 0) return;
     velocity.current = Math.random() * 20 + 10;
-    spin();
+    startSpinApi.mutate({
+      lobbyCuid,
+      initialRotation: rotation.current,
+      initialVelocity: velocity.current,
+    });
   };
 
   const selectItem = () => {
@@ -36,7 +62,7 @@ export default function Wheel({ wheelItems }: WheelProps) {
     const angle = (360 - rotation.current) % 360;
     let startAngle = 0;
     let endAngle = 0;
-    wheelItems.forEach((item, i) => {
+    wheelItems.forEach((item) => {
       startAngle = endAngle;
       endAngle = startAngle + (item.weight / total) * 360;
       if (angle >= startAngle && angle < endAngle) {
@@ -47,6 +73,7 @@ export default function Wheel({ wheelItems }: WheelProps) {
 
   const spin = () => {
     if (!wheelRef.current) return;
+
     rotation.current = (rotation.current + velocity.current) % 360;
     wheelRef.current.style.transform = `rotate(${rotation.current}deg)`;
 

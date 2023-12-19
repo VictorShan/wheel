@@ -4,3 +4,8 @@ import type { AppRouter } from "~/server/api/root";
 export type ApiOutput = inferRouterOutputs<AppRouter>;
 export type LobbyInfo = NonNullable<ApiOutput["lobbies"]["getLobbyInfo"]>;
 export type Item = LobbyInfo["items"][number];
+export type Spin = {
+  itemIds: number[];
+  intialRotation: number;
+  initialVelocity: number;
+};

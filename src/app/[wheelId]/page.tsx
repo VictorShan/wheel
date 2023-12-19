@@ -49,7 +49,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
       <h1>Page {lobbyInfo.data?.name ?? params.wheelId}</h1>
       <div className="flex">
         <div>
-          <Wheel wheelItems={wheelItems} />
+          <Wheel wheelItems={wheelItems} lobbyCuid={params.wheelId} />
         </div>
         <div className="p-5">
           <h2>Add Items</h2>
