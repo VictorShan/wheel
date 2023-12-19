@@ -8,6 +8,3 @@ export const PusherClient = new PusherJS(env.NEXT_PUBLIC_SOKETI_KEY, {
   disableStats: true,
   enabledTransports: ["ws", "wss"],
 });
-
-export const SELECTED_CHANNEL = "client-selected-channel";
-export const ADD_ITEM = "client-add-item";

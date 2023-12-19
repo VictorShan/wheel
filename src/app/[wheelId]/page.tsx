@@ -7,7 +7,7 @@ import { type Item } from "../_components/types";
 import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
-import { SELECTED_CHANNEL } from "~/config/Pusher";
+import { SELECTED_CHANNEL } from "~/config/PusherConstants";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [item, setItem] = useState<Item>();

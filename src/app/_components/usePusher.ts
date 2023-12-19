@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Channel } from "pusher-js";
-import { PusherClient } from "~/config/Pusher";
+import { PusherClient } from "~/config/PusherClient";
 
 export function usePusher(
   channelName: string,
