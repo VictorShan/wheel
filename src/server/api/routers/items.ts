@@ -2,6 +2,8 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { lobbies, items } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
+import { PusherServer } from "~/config/PusherServer";
+import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 
 export const itemRouter = createTRPCRouter({
   addItem: publicProcedure
@@ -31,18 +33,26 @@ export const itemRouter = createTRPCRouter({
           shortName: input.item.shortName,
           url: input.item.url,
           imageUrl: input.item.imageUrl,
+          lastSelectedAt: new Date(1000), // Earliest possible date
         })
         .execute();
+      PusherServer.trigger(getLobbyChannelName(input.lobbyCuid), ITEM_EVENT, {
+        item: item.rows[0],
+      });
       return item;
     }),
   removeItem: publicProcedure
     .input(
       z.object({
+        lobbyCuid: z.string(),
         itemId: z.number(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(items).where(eq(items.id, input.itemId)).execute();
+      PusherServer.trigger(getLobbyChannelName(input.lobbyCuid), ITEM_EVENT, {
+        item: input.itemId,
+      });
     }),
   selectItem: publicProcedure
     .input(z.object({ itemId: z.number() }))

@@ -7,41 +7,30 @@ import { type Item } from "../_components/types";
 import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
-import { SELECTED_CHANNEL } from "~/config/PusherConstants";
+import {
+  ITEM_EVENT,
+  SELECTED_CHANNEL,
+  getLobbyChannelName,
+} from "~/config/PusherConstants";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [item, setItem] = useState<Item>();
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery({
     lobbyCuid: params.wheelId,
   });
-
-  const updateSelected = (data: { item: Item }) => {
-    if (data?.item) {
-      const selectedItem = data.item;
-      // TODO: Make this less hacky
-      setItem({
-        ...data.item,
-        lastSelectedAt:
-          selectedItem.lastSelectedAt && new Date(selectedItem.lastSelectedAt),
-        createdAt: selectedItem.createdAt && new Date(selectedItem.createdAt),
-        updatedAt: selectedItem.updatedAt && new Date(selectedItem.updatedAt),
-      });
-    }
-  };
-
-  const selectedChannel = usePusher(
-    params.wheelId,
-    SELECTED_CHANNEL,
-    updateSelected,
+  usePusher(
+    getLobbyChannelName(params.wheelId),
+    ITEM_EVENT,
+    (data: { item: Item }) => {
+      lobbyInfo.refetch();
+    },
   );
+
   const wheelItems = generateWheelItems(lobbyInfo.data?.items, (i: number) => {
     if (!lobbyInfo.data?.items || i >= lobbyInfo.data.items.length || i < 0) {
       setItem(undefined);
     } else {
       setItem({ ...lobbyInfo.data.items[i]! });
-      selectedChannel.trigger(SELECTED_CHANNEL, {
-        item: lobbyInfo.data.items[i],
-      });
     }
   });
   return (

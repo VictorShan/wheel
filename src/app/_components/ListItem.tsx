@@ -31,6 +31,7 @@ function Button({ item }: { item: Item }) {
           className="btn"
           onClick={() => {
             removeItem.mutate({
+              lobbyCuid: item.lobbyCuid,
               itemId: item.id,
             });
           }}

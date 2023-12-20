@@ -23,6 +23,7 @@ const COLORS = ["red", "blue", "green", "orange"];
 const VELOCITY_DECAY = 0.05;
 
 export default function Wheel({ wheelItems, lobbyCuid }: WheelProps) {
+  const itemsRef = useRef(wheelItems);
   wheelItems.sort((a, b) => a.weight - b.weight);
   const startSpinApi = api.lobbies.spin.useMutation({
     onMutate: () => {
@@ -37,7 +38,7 @@ export default function Wheel({ wheelItems, lobbyCuid }: WheelProps) {
   usePusher(
     getLobbyChannelName(lobbyCuid),
     SPIN_EVENT,
-    (data: { spin: Spin }) => {
+    function (data: { spin: Spin }) {
       if (!wheelRef.current) return;
       if (velocity.current !== 0) return;
       rotation.current = data.spin.intialRotation;
@@ -62,7 +63,7 @@ export default function Wheel({ wheelItems, lobbyCuid }: WheelProps) {
     const angle = (360 - rotation.current) % 360;
     let startAngle = 0;
     let endAngle = 0;
-    wheelItems.forEach((item) => {
+    itemsRef.current.forEach((item) => {
       startAngle = endAngle;
       endAngle = startAngle + (item.weight / total) * 360;
       if (angle >= startAngle && angle < endAngle) {
@@ -111,6 +112,7 @@ export default function Wheel({ wheelItems, lobbyCuid }: WheelProps) {
   }, [markerRef]);
 
   useEffect(() => {
+    itemsRef.current = wheelItems;
     const canvas = wheelRef.current;
     if (!canvas) return;
     canvas.style.transform = `rotate(${rotation.current}deg)`;
