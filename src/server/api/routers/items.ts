@@ -36,9 +36,13 @@ export const itemRouter = createTRPCRouter({
           lastSelectedAt: new Date(1000), // Earliest possible date
         })
         .execute();
-      PusherServer.trigger(getLobbyChannelName(input.lobbyCuid), ITEM_EVENT, {
-        item: item.rows[0],
-      });
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: item.rows[0],
+        },
+      );
       return item;
     }),
   removeItem: publicProcedure
@@ -50,9 +54,13 @@ export const itemRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(items).where(eq(items.id, input.itemId)).execute();
-      PusherServer.trigger(getLobbyChannelName(input.lobbyCuid), ITEM_EVENT, {
-        item: input.itemId,
-      });
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: input.itemId,
+        },
+      );
     }),
   selectItem: publicProcedure
     .input(z.object({ itemId: z.number() }))

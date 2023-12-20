@@ -1,4 +1,4 @@
-import { Item } from "~/app/_components/types";
+import type { Item } from "~/app/_components/types";
 
 export const SELECTED_CHANNEL = "client-selected-channel";
 export const ADD_ITEM = "client-add-item";

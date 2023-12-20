@@ -7,11 +7,7 @@ import { type Item } from "../_components/types";
 import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
-import {
-  ITEM_EVENT,
-  SELECTED_CHANNEL,
-  getLobbyChannelName,
-} from "~/config/PusherConstants";
+import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [item, setItem] = useState<Item>();
@@ -21,8 +17,8 @@ export default function Page({ params }: { params: { wheelId: string } }) {
   usePusher(
     getLobbyChannelName(params.wheelId),
     ITEM_EVENT,
-    (data: { item: Item }) => {
-      lobbyInfo.refetch();
+    (_: { item: Item }) => {
+      void lobbyInfo.refetch();
     },
   );
 
