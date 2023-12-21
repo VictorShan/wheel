@@ -11,9 +11,28 @@ import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [item, setItem] = useState<Item>();
-  const lobbyInfo = api.lobbies.getLobbyInfo.useQuery({
-    lobbyCuid: params.wheelId,
-  });
+  const [wheelItems, setItems] = useState<WheelItem[]>([]);
+  const [willShuffle, setWillShuffle] = useState(false);
+  const lobbyInfo = api.lobbies.getLobbyInfo.useQuery(
+    {
+      lobbyCuid: params.wheelId,
+    },
+    {
+      onSuccess: (data) => {
+        !data
+          ? setItems([])
+          : setItems(
+              generateWheelItems(data.items, (i: number) => {
+                if (!data.items || i >= data.items.length || i < 0) {
+                  setItem(undefined);
+                } else {
+                  setItem({ ...data.items[i]! });
+                }
+              }),
+            );
+      },
+    },
+  );
   usePusher(
     getLobbyChannelName(params.wheelId),
     ITEM_EVENT,
@@ -22,19 +41,28 @@ export default function Page({ params }: { params: { wheelId: string } }) {
     },
   );
 
-  const wheelItems = generateWheelItems(lobbyInfo.data?.items, (i: number) => {
-    if (!lobbyInfo.data?.items || i >= lobbyInfo.data.items.length || i < 0) {
-      setItem(undefined);
-    } else {
-      setItem({ ...lobbyInfo.data.items[i]! });
-    }
-  });
   return (
     <article className="p-10">
       <h1>Page {lobbyInfo.data?.name ?? params.wheelId}</h1>
       <div className="flex">
         <div>
-          <Wheel wheelItems={wheelItems} lobbyCuid={params.wheelId} />
+          <Wheel
+            wheelItems={wheelItems}
+            lobbyCuid={params.wheelId}
+            shuffleOnSpin={willShuffle}
+          />
+          <label className="label flex cursor-pointer justify-end">
+            <span className="label-text mr-6">Shuffle on spin</span>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={willShuffle}
+              onChange={() => {
+                setWillShuffle(!willShuffle);
+                console.log(!willShuffle);
+              }}
+            />
+          </label>
         </div>
         <div className="p-5">
           <h2>Add Items</h2>

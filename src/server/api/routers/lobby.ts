@@ -56,12 +56,14 @@ export const lobbyRouter = createTRPCRouter({
       await ctx.db.update(lobbies).set({
         lastReadAt: new Date(),
       });
-      return ctx.db.query.lobbies.findFirst({
+      const result = await ctx.db.query.lobbies.findFirst({
         where: eq(lobbies.cuid, input.lobbyCuid),
         with: {
           items: true,
         },
       });
+      result?.items.sort((a, b) => a.upvotes - b.upvotes);
+      return result;
     }),
   spin: publicProcedure
     .input(
@@ -69,6 +71,7 @@ export const lobbyRouter = createTRPCRouter({
         lobbyCuid: z.string(),
         initialRotation: z.number(),
         initialVelocity: z.number(),
+        seed: z.number().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -87,6 +90,7 @@ export const lobbyRouter = createTRPCRouter({
         SPIN_EVENT,
         {
           spin,
+          seed: input.seed,
         },
       );
     }),
