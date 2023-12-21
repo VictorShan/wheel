@@ -225,14 +225,14 @@ function stableShuffle(list: WheelItem[], seed: number = SEED) {
 /**
  * Shuffles an array using the Fisher-Yates algorithm
  */
-function shuffle(list: any[], seed?: number) {
+function shuffle<T>(list: T[], seed?: number) {
   if (!seed) return list;
   const rng = getRandomGenerator(seed);
   const shuffled = [...list];
   // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
   }
   return shuffled;
 }
