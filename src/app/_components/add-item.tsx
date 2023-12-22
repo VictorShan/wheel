@@ -17,9 +17,9 @@ export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
 
   return (
     <form
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        await createLobby.mutate({
+        void createLobby.mutate({
           lobbyCuid,
           item: {
             longName: name,

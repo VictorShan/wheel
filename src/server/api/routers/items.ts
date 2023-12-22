@@ -63,15 +63,22 @@ export const itemRouter = createTRPCRouter({
       );
     }),
   selectItem: publicProcedure
-    .input(z.object({ itemId: z.number() }))
+    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
+      const item = await ctx.db
         .update(items)
         .set({
           lastSelectedAt: new Date(),
         })
         .where(eq(items.id, input.itemId))
         .execute();
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: item.rows[0],
+        },
+      );
     }),
   adjustVotes: publicProcedure
     .input(

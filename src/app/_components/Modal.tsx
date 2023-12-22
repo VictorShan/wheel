@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { type Item } from "./types";
+import { api } from "~/trpc/react";
 
 export default function Modal({ item }: { item?: Item }) {
   const modalRef = useRef<HTMLDialogElement>(null);
+  const selectItem = api.items.selectItem.useMutation();
   useEffect(() => {
     if (item) {
       modalRef.current?.showModal();
@@ -31,12 +33,21 @@ export default function Modal({ item }: { item?: Item }) {
             rel="noopener noreferrer"
             className={`btn ${!item?.url && "pointer-events-none"}`}
           >
-            Order Now
+            Visit Site
           </a>
-          <div>
-            <button className="btn">Upvote</button>
-            <button className="btn">Downvote</button>
-          </div>
+          <button
+            className="btn"
+            onClick={() => {
+              if (!item) return;
+              selectItem.mutate({
+                itemId: item.id,
+                lobbyCuid: item.lobbyCuid,
+              });
+            }}
+            disabled={!item?.id}
+          >
+            Select
+          </button>
           <form method="dialog">
             <button className="btn">Close</button>
           </form>
