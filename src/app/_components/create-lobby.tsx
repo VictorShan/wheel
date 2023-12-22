@@ -24,6 +24,7 @@ export function CreateLobby() {
       }}
       className="flex flex-col gap-2"
     >
+      <h1 className="text-center text-lg">Create Lobby</h1>
       <input
         type="text"
         placeholder="Lobby Name"

@@ -184,17 +184,20 @@ export default function Wheel({
   }, [wheelRef, items]);
 
   return (
-    <div className="p-4">
-      <h1>Wheel</h1>
-      <div className="relative">
-        <canvas ref={wheelRef} width="500" height="500" onClick={startSpin} />
-        <canvas
-          ref={markerRef}
-          width="500"
-          height="500"
-          className="h-100 w-100 z-1 pointer-events-none absolute top-0"
-        />
-      </div>
+    <div className="relative max-w-max p-2">
+      <canvas
+        ref={wheelRef}
+        width="500"
+        height="500"
+        onClick={startSpin}
+        className="w-full"
+      />
+      <canvas
+        ref={markerRef}
+        width="500"
+        height="500"
+        className="h-100 w-100 z-1 pointer-events-none absolute top-0 w-full"
+      />
     </div>
   );
 }

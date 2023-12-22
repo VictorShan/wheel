@@ -4,19 +4,31 @@ import { type Item } from "./types";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 
-export default function ListItem({ item }: { item: Item }) {
+export default function ListItem({
+  item,
+  chooseItem,
+}: {
+  item: Item;
+  chooseItem: (item: Item) => void;
+}) {
   return (
     <li
       key={item.id}
-      className="m-1 flex items-center justify-between rounded-lg border-2 border-solid border-black p-2 dark:border-gray-400"
+      className="my-2 flex items-center justify-between rounded-lg border-2 border-solid border-black p-2 dark:border-gray-400"
     >
       <span className="p-1">{item.longName}</span>
-      <Button item={item} />
+      <Button item={item} chooseItem={chooseItem} />
     </li>
   );
 }
 
-function Button({ item }: { item: Item }) {
+function Button({
+  item,
+  chooseItem,
+}: {
+  item: Item;
+  chooseItem: (item: Item) => void;
+}) {
   const router = useRouter();
   const removeItem = api.items.removeItem.useMutation({
     onSuccess: () => {
@@ -45,8 +57,11 @@ function Button({ item }: { item: Item }) {
     );
   }
   return (
-    <button className="btn" onClick={() => setConfirmDelete(true)}>
-      X
-    </button>
+    <div className="flex gap-4">
+      <button onClick={() => chooseItem({ ...item })}>View</button>
+      <button className="btn" onClick={() => setConfirmDelete(true)}>
+        X
+      </button>
+    </div>
   );
 }

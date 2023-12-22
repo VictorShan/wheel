@@ -42,41 +42,44 @@ export default function Page({ params }: { params: { wheelId: string } }) {
   );
 
   return (
-    <article className="p-10">
-      <h1>Page {lobbyInfo.data?.name ?? params.wheelId}</h1>
-      <div className="flex">
-        <div>
-          <Wheel
-            wheelItems={wheelItems}
-            lobbyCuid={params.wheelId}
-            shuffleOnSpin={willShuffle}
-          />
-          <label className="label flex cursor-pointer justify-end">
-            <span className="label-text mr-6">Shuffle on spin</span>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={willShuffle}
-              onChange={() => {
-                setWillShuffle(!willShuffle);
-                console.log(!willShuffle);
-              }}
+    <main className="flex min-h-screen w-screen items-center justify-center">
+      <article className="container p-6">
+        <h1 className="text-2xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
+        <div className="flex flex-col justify-center md:flex-row">
+          <div className="">
+            <Wheel
+              wheelItems={wheelItems}
+              lobbyCuid={params.wheelId}
+              shuffleOnSpin={willShuffle}
             />
-          </label>
+            <label className="label flex cursor-pointer justify-end">
+              <span className="label-text mr-6">Shuffle on spin</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={willShuffle}
+                onChange={() => {
+                  setWillShuffle(!willShuffle);
+                  console.log(!willShuffle);
+                }}
+              />
+            </label>
+          </div>
+          <div className="flex flex-col gap-8 p-5">
+            <AddItem lobbyCuid={params.wheelId} />
+            <section>
+              <h2>Items</h2>
+              <ul>
+                {lobbyInfo.data?.items.map((item) => (
+                  <ListItem item={item} key={item.id} chooseItem={setItem} />
+                ))}
+              </ul>
+            </section>
+          </div>
         </div>
-        <div className="p-5">
-          <h2>Add Items</h2>
-          <AddItem lobbyCuid={params.wheelId} />
-          <h2>Items</h2>
-          <ul>
-            {lobbyInfo.data?.items.map((item) => (
-              <ListItem item={item} key={item.id} />
-            ))}
-          </ul>
-        </div>
-      </div>
-      <Modal item={item} />
-    </article>
+        <Modal item={item} />
+      </article>
+    </main>
   );
 }
 

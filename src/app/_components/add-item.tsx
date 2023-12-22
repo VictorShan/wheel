@@ -17,18 +17,21 @@ export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
 
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        createLobby.mutate({
+        await createLobby.mutate({
           lobbyCuid,
           item: {
             longName: name,
             url: url,
           },
         });
+        setName("");
+        setUrl("");
       }}
       className="flex flex-col gap-2"
     >
+      <h2>Add Items</h2>
       <input
         type="text"
         placeholder="Item Name"
