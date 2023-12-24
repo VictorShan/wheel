@@ -88,11 +88,16 @@ function generateWheelItems(
   selectItem: (i: number) => void,
 ): WheelItem[] {
   const wheelItems: WheelItem[] = [];
+  const minimumWeight =
+    items?.reduce((acc, item) => {
+      return Math.min(acc, item.upvotes);
+    }, Infinity) ?? 1;
   items?.forEach((item, i) => {
     const dateDiff = Date.now() - item.lastSelectedAt.getTime();
     const daysSinceLastSelected = Math.ceil(dateDiff / (1000 * 60 * 60 * 24));
     const daysSinceLastSelectedWeight = Math.min(1, daysSinceLastSelected / 5);
-    const weight = Math.max(item.upvotes, 1);
+    const weight = item.upvotes - minimumWeight + 1; // Minimum weight will be 1
+
     wheelItems.push({
       longName: item.longName,
       shortName: item.shortName,

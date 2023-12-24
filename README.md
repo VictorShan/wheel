@@ -1,28 +1,28 @@
-# Create T3 App
+# Spin the Wheel
+
+_
+It's lunchtime and you need to decide what to eat! You and your coworkers need to find a resturant
+that everyone is fine with but no one is giving any options. Meanwhile, time is ticking and the
+lines at different resturants grows longer by the second. A decision must be made now!
+_
+
+This is a simple wheel to help you pick an option out of multiple choices.
+
+## Getting Started
+
+To get started, open the website and pick a title for your wheel. Each wheel is given a randomly
+generated URL that you can share. However, there is a chance that someone else might get the same
+URL as you. The URL is a randomly generated CUID of length 10. After being automatically directed
+to your wheel, you can add options to your wheel. Once you are done adding options, you can spin
+the wheel and see what option is chosen.
+
+## Features
+
+- Spinning the wheel will randomly choose an option. Spinning the wheel on one device will spin the
+  wheel on all devices that are viewing the same wheel.
+- Each option can be given a URL that will be opened when the option is chosen.
+- Once an option is "selected" using the button, the option will only have 20% of its original
+  weight. This weight will restored by 20% every day.
+- You can upvote or downvote an option. This will increase or decrease the weight of the option.
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
-
-## What's next? How do I make an app with this?
-
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
-
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
-
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
-
-## Learn More
-
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
-
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
-
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
-
-## How do I deploy this?
-
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.

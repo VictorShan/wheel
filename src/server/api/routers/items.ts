@@ -4,6 +4,7 @@ import { lobbies, items } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { PusherServer } from "~/config/PusherServer";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { TRPCClientError } from "@trpc/client";
 
 export const itemRouter = createTRPCRouter({
   addItem: publicProcedure
@@ -80,23 +81,54 @@ export const itemRouter = createTRPCRouter({
         },
       );
     }),
-  adjustVotes: publicProcedure
-    .input(
-      z.object({
-        itemId: z.number(),
-        upvotes: z.number(),
-      }),
-    )
+  upvoteItem: publicProcedure
+    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const item = await ctx.db.query.items.findFirst({
         where: eq(items.id, input.itemId),
       });
+      if (!item) {
+        throw new TRPCClientError(`Item ${input.itemId} not found`);
+      }
+      item.upvotes += 1;
       await ctx.db
         .update(items)
         .set({
-          upvotes: input.upvotes + item!.upvotes,
+          upvotes: item.upvotes,
         })
         .where(eq(items.id, input.itemId))
         .execute();
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: item,
+        },
+      );
+    }),
+  downvoteItem: publicProcedure
+    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const item = await ctx.db.query.items.findFirst({
+        where: eq(items.id, input.itemId),
+      });
+      if (!item) {
+        throw new TRPCClientError(`Item ${input.itemId} not found`);
+      }
+      item.upvotes -= 1;
+      await ctx.db
+        .update(items)
+        .set({
+          upvotes: item.upvotes,
+        })
+        .where(eq(items.id, input.itemId))
+        .execute();
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: item,
+        },
+      );
     }),
 });
