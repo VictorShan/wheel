@@ -25,4 +25,11 @@ the wheel and see what option is chosen.
   weight. This weight will restored by 20% every day.
 - You can upvote or downvote an option. This will increase or decrease the weight of the option.
 
+## Stack
+
+- Next.js
+- PlanetScale
+- _Clerk (unused)_ - I was planning on using Clerk for authentication but I didn't think it was
+  necessary for this project.
+
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
