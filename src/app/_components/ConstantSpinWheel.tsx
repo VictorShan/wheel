@@ -78,7 +78,7 @@ export function ConstantSpinWheel({
   }, [canvasRef]);
 
   return (
-    <div className="max-w-max">
+    <div className="max-y-[50vh] max-w-max px-8">
       <canvas ref={canvasRef} width="500" height="500" className="w-full" />
     </div>
   );
