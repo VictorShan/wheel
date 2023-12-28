@@ -8,9 +8,10 @@ import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { ItemsContext } from "../_components/providers";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
-  const [item, setItem] = useState<Item>();
+  const [itemId, setItemId] = useState<{ id: number }>();
   const [wheelItems, setItems] = useState<WheelItem[]>([]);
   const [willShuffle, setWillShuffle] = useState(false);
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery(
@@ -24,9 +25,9 @@ export default function Page({ params }: { params: { wheelId: string } }) {
           : setItems(
               generateWheelItems(data.items, (i: number) => {
                 if (!data.items || i >= data.items.length || i < 0) {
-                  setItem(undefined);
+                  setItemId(undefined);
                 } else {
-                  setItem({ ...data.items[i]! });
+                  setItemId({ id: data.items[i]!.id });
                 }
               }),
             );
@@ -43,42 +44,48 @@ export default function Page({ params }: { params: { wheelId: string } }) {
 
   return (
     <main className="flex min-h-screen w-screen items-center justify-center">
-      <article className="container p-6">
-        <h1 className="text-2xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
-        <div className="flex flex-col justify-center md:flex-row">
-          <div className="">
-            <Wheel
-              wheelItems={wheelItems}
-              lobbyCuid={params.wheelId}
-              shuffleOnSpin={willShuffle}
-            />
-            <label className="label flex cursor-pointer justify-end">
-              <span className="label-text mr-6">Shuffle on spin</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
-                checked={willShuffle}
-                onChange={() => {
-                  setWillShuffle(!willShuffle);
-                  console.log(!willShuffle);
-                }}
+      <ItemsContext.Provider value={lobbyInfo.data?.items}>
+        <article className="container p-6">
+          <h1 className="text-2xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
+          <div className="flex flex-col justify-center md:flex-row">
+            <div className="">
+              <Wheel
+                lobbyCuid={params.wheelId}
+                shuffleOnSpin={willShuffle}
+                wheelItems={wheelItems}
               />
-            </label>
+              <label className="label flex cursor-pointer justify-end">
+                <span className="label-text mr-6">Shuffle on spin</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={willShuffle}
+                  onChange={() => {
+                    setWillShuffle(!willShuffle);
+                    console.log(!willShuffle);
+                  }}
+                />
+              </label>
+            </div>
+            <div className="flex flex-col gap-8 p-5">
+              <AddItem lobbyCuid={params.wheelId} />
+              <section>
+                <h2>Items</h2>
+                <ul>
+                  {lobbyInfo.data?.items.map((item) => (
+                    <ListItem
+                      item={item}
+                      key={item.id}
+                      chooseItem={(itemId: number) => setItemId({ id: itemId })}
+                    />
+                  ))}
+                </ul>
+              </section>
+            </div>
           </div>
-          <div className="flex flex-col gap-8 p-5">
-            <AddItem lobbyCuid={params.wheelId} />
-            <section>
-              <h2>Items</h2>
-              <ul>
-                {lobbyInfo.data?.items.map((item) => (
-                  <ListItem item={item} key={item.id} chooseItem={setItem} />
-                ))}
-              </ul>
-            </section>
-          </div>
-        </div>
-        <Modal item={item} />
-      </article>
+          <Modal itemId={itemId} />
+        </article>
+      </ItemsContext.Provider>
     </main>
   );
 }

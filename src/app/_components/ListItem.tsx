@@ -9,7 +9,7 @@ export default function ListItem({
   chooseItem,
 }: {
   item: Item;
-  chooseItem: (item: Item) => void;
+  chooseItem: (itemId: number) => void;
 }) {
   return (
     <li
@@ -27,7 +27,7 @@ function Button({
   chooseItem,
 }: {
   item: Item;
-  chooseItem: (item: Item) => void;
+  chooseItem: (itemId: number) => void;
 }) {
   const router = useRouter();
   const removeItem = api.items.removeItem.useMutation({
@@ -58,7 +58,9 @@ function Button({
   }
   return (
     <div className="flex gap-4">
-      <button onClick={() => chooseItem({ ...item })}>View</button>
+      <button className="btn" onClick={() => chooseItem(item.id)}>
+        View
+      </button>
       <button className="btn" onClick={() => setConfirmDelete(true)}>
         X
       </button>
