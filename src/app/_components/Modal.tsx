@@ -8,6 +8,7 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
   const items = useContext(ItemsContext);
   const [item, setItem] = useState<Item>();
   const modalRef = useRef<HTMLDialogElement>(null);
+  const voteTimes = useRef<number[]>([]);
   const selectItem = api.items.selectItem.useMutation();
   const upvoteItem = api.items.upvoteItem.useMutation();
   const downvoteItem = api.items.downvoteItem.useMutation();
@@ -40,6 +41,8 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
               className="btn"
               onClick={() => {
                 if (!item) return;
+                voteTimes.current = filter5Mins(voteTimes.current);
+                if (voteTimes.current.length > 5) return;
                 upvoteItem.mutate({
                   itemId: item.id,
                   lobbyCuid: item.lobbyCuid,
@@ -52,10 +55,13 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
               className="btn"
               onClick={() => {
                 if (!item) return;
+                voteTimes.current = filter5Mins(voteTimes.current);
+                if (voteTimes.current.length > 5) return;
                 downvoteItem.mutate({
                   itemId: item.id,
                   lobbyCuid: item.lobbyCuid,
                 });
+                voteTimes.current.push(getUTCNow());
               }}
             >
               -
@@ -75,10 +81,13 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
             className="btn"
             onClick={() => {
               if (!item) return;
+              voteTimes.current = filter5Mins(voteTimes.current);
+              if (voteTimes.current.length > 5) return;
               selectItem.mutate({
                 itemId: item.id,
                 lobbyCuid: item.lobbyCuid,
               });
+              voteTimes.current.push(getUTCNow());
             }}
             disabled={!item?.id}
           >
@@ -91,4 +100,17 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
       </div>
     </dialog>
   );
+}
+
+function filter5Mins(times: number[]) {
+  const now = getUTCNow();
+  const fiveMinutes = 5 * 60 * 1000;
+  return times.filter((time) => now - time < fiveMinutes);
+}
+function getUTCNow() {
+  var now = new Date();
+  var time = now.getTime();
+  var offset = now.getTimezoneOffset();
+  offset = offset * 60000;
+  return time - offset;
 }
