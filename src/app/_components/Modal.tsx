@@ -108,9 +108,5 @@ function filter5Mins(times: number[]) {
   return times.filter((time) => now - time < fiveMinutes);
 }
 function getUTCNow() {
-  var now = new Date();
-  var time = now.getTime();
-  var offset = now.getTimezoneOffset();
-  offset = offset * 60000;
-  return time - offset;
+  return Date.now();
 }
