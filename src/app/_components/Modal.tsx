@@ -4,7 +4,13 @@ import { type Item } from "./types";
 import { api } from "~/trpc/react";
 import { ItemsContext } from "./providers";
 
-export default function Modal({ itemId }: { itemId?: { id: number } }) {
+export default function Modal({
+  itemId,
+  close,
+}: {
+  itemId?: { id: number };
+  close?: () => void;
+}) {
   const items = useContext(ItemsContext);
   const [item, setItem] = useState<Item>();
   const modalRef = useRef<HTMLDialogElement>(null);
@@ -94,7 +100,16 @@ export default function Modal({ itemId }: { itemId?: { id: number } }) {
             Select
           </button>
           <form method="dialog">
-            <button className="btn">Close</button>
+            <button
+              className="btn"
+              onClick={() => {
+                if (close) {
+                  close();
+                }
+              }}
+            >
+              Close
+            </button>
           </form>
         </div>
       </div>

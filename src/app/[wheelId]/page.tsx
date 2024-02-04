@@ -2,7 +2,7 @@
 import Wheel, { type WheelItem } from "~/app/_components/Wheel";
 import { api } from "~/trpc/react";
 import { AddItem } from "../_components/add-item";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { type Item } from "../_components/types";
 import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
@@ -41,6 +41,10 @@ export default function Page({ params }: { params: { wheelId: string } }) {
       void lobbyInfo.refetch();
     },
   );
+
+  const closeModal = useCallback(() => {
+    setItemId(undefined);
+  }, [setItemId]);
 
   return (
     <main className="flex min-h-screen w-screen items-center justify-center">
@@ -83,7 +87,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
               </section>
             </div>
           </div>
-          <Modal itemId={itemId} />
+          <Modal itemId={itemId} close={closeModal} />
         </article>
       </ItemsContext.Provider>
     </main>
