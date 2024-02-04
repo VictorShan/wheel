@@ -50,7 +50,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
     <main className="flex min-h-screen w-screen items-center justify-center">
       <ItemsContext.Provider value={lobbyInfo.data?.items}>
         <article className="container p-6">
-          <h1 className="text-2xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
+          <h1 className="text-4xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
           <div className="flex flex-col justify-center md:flex-row">
             <div className="">
               <Wheel
@@ -87,8 +87,8 @@ export default function Page({ params }: { params: { wheelId: string } }) {
               </section>
             </div>
           </div>
-          <Modal itemId={itemId} close={closeModal} />
         </article>
+        <Modal itemId={itemId} close={closeModal} />
       </ItemsContext.Provider>
     </main>
   );
