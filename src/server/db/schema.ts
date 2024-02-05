@@ -9,6 +9,7 @@ import {
   timestamp,
   varchar,
   text,
+  json,
 } from "drizzle-orm/mysql-core";
 
 /**
@@ -38,8 +39,9 @@ export const lobbies = mysqlTable(
   }),
 );
 
-export const lobbyItems = relations(lobbies, ({ many }) => ({
+export const lobbyRelations = relations(lobbies, ({ many }) => ({
   items: many(items),
+  logs: many(lobbyLogs),
 }));
 
 export const items = mysqlTable(
@@ -62,6 +64,33 @@ export const items = mysqlTable(
     nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
   }),
 );
+
+export const lobbyLogs = mysqlTable(
+  "lobby_log",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
+    lobbyCuid: varchar("lobby_cuid", { length: 64 }).notNull(),
+    timestamp: timestamp("timestamp")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    data: json("data")
+      .$type<{
+        action: string;
+        message: string;
+      }>()
+      .notNull(),
+  },
+  (example) => ({
+    nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
+  }),
+);
+
+export const lobbyLogRelations = relations(lobbyLogs, ({ one }) => ({
+  lobby: one(lobbies, {
+    fields: [lobbyLogs.lobbyCuid],
+    references: [lobbies.cuid],
+  }),
+}));
 
 export const itemLobbies = relations(items, ({ one }) => ({
   lobby: one(lobbies, {

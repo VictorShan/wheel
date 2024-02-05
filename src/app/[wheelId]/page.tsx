@@ -9,6 +9,7 @@ import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { ItemsContext } from "../_components/providers";
+import LogListMemo from "../_components/LogList";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [itemId, setItemId] = useState<{ id: number }>();
@@ -84,6 +85,9 @@ export default function Page({ params }: { params: { wheelId: string } }) {
                     />
                   ))}
                 </ul>
+              </section>
+              <section>
+                <LogListMemo lobbyId={params.wheelId} />
               </section>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { lobbies, items } from "~/server/db/schema";
+import { lobbies, items, lobbyLogs } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { PusherServer } from "~/config/PusherServer";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
@@ -66,7 +66,13 @@ export const itemRouter = createTRPCRouter({
   selectItem: publicProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const item = await ctx.db
+      const item = await ctx.db.query.items.findFirst({
+        where: eq(items.id, input.itemId),
+      });
+      if (!item) {
+        throw new TRPCClientError(`Item ${input.itemId} not found`);
+      }
+      await ctx.db
         .update(items)
         .set({
           lastSelectedAt: new Date(),
@@ -77,9 +83,17 @@ export const itemRouter = createTRPCRouter({
         getLobbyChannelName(input.lobbyCuid),
         ITEM_EVENT,
         {
-          item: item.rows[0],
+          item: item,
         },
       );
+      await ctx.db.insert(lobbyLogs).values({
+        lobbyCuid: input.lobbyCuid,
+        timestamp: new Date(),
+        data: {
+          action: "selectItem",
+          message: `Item ${item.longName || item.shortName} selected`,
+        },
+      });
     }),
   upvoteItem: publicProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
