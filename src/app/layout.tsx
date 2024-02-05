@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TRPCReactProvider } from "~/trpc/react";
 import NavBar from "~/app/_components/NavBar";
+import { Toaster } from "~/components/ui/sonner";
+import { ThemeProvider } from "~/components/ui/ThemeProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,10 +30,17 @@ export default function RootLayout({
         <body
           className={`font-sans ${inter.variable} min-h-screen bg-gradient-to-b from-[#383838] to-[#15162c]`}
         >
-          <NavBar />
-          <TRPCReactProvider cookies={cookies().toString()}>
-            {children}
-          </TRPCReactProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem={true}
+          >
+            <NavBar />
+            <TRPCReactProvider cookies={cookies().toString()}>
+              {children}
+            </TRPCReactProvider>
+            <Toaster />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

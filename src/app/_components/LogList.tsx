@@ -4,12 +4,18 @@ import { memo } from "react";
 import { api } from "~/trpc/react";
 import { usePusher } from "./usePusher";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { toast } from "sonner";
 
 function LogList({ lobbyId }: { lobbyId: string }) {
   const log = api.lobbyLogs.getLogs.useQuery({ lobbyCuid: lobbyId });
   usePusher(getLobbyChannelName(lobbyId), ITEM_EVENT, () => {
     void log.refetch();
   });
+
+  if (log.isError) {
+    toast(log.error.message);
+    return <p>Error loading logs</p>;
+  }
   return (
     <div>
       <h2>Log</h2>

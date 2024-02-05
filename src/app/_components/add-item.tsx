@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
   const router = useRouter();
@@ -12,6 +13,9 @@ export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
   const createLobby = api.items.addItem.useMutation({
     onSuccess: () => {
       router.refresh();
+    },
+    onError: (error) => {
+      toast(error.message);
     },
   });
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type Item } from "./types";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 export default function ListItem({
   item,
@@ -33,6 +34,9 @@ function Button({
   const removeItem = api.items.removeItem.useMutation({
     onSuccess: () => {
       router.refresh();
+    },
+    onError: (error) => {
+      toast(error.message);
     },
   });
   const [confirmDelete, setConfirmDelete] = useState<boolean>(false);

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+import { toast } from "sonner";
 import { api } from "~/trpc/react";
 
 export function CreateLobby() {
@@ -13,6 +13,9 @@ export function CreateLobby() {
   const createLobby = api.lobbies.createLobby.useMutation({
     onSuccess: (data?: string) => {
       router.push(`/${data}`);
+    },
+    onError: (error) => {
+      toast(error.message);
     },
   });
 

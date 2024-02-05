@@ -10,21 +10,22 @@ import { observable } from "@trpc/server/observable";
 import { type TRPCErrorResponse } from "@trpc/server/rpc";
 import { cookies } from "next/headers";
 import { cache } from "react";
-
 import { appRouter, type AppRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { transformer } from "./shared";
+import { currentUser } from "@clerk/nextjs/server";
 
 /**
  * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
  * handling a tRPC call from a React Server Component.
  */
-const createContext = cache(() => {
+const createContext = cache(async () => {
   return createTRPCContext({
     headers: new Headers({
       cookie: cookies().toString(),
       "x-trpc-source": "rsc",
     }),
+    userId: await currentUser().then((user) => user?.id ?? null),
   });
 });
 
@@ -41,7 +42,7 @@ export const api = createTRPCProxyClient<AppRouter>({
      * Components always run on the server, we can just call the procedure as a function.
      */
     () =>
-      ({ op }) =>
+      ({ op, next }) =>
         observable((observer) => {
           createContext()
             .then((ctx) => {

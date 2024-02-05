@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { type Item } from "./types";
 import { api } from "~/trpc/react";
 import { ItemsContext } from "./providers";
+import { toast } from "sonner";
 
 export default function Modal({
   itemId,
@@ -15,9 +16,21 @@ export default function Modal({
   const [item, setItem] = useState<Item>();
   const modalRef = useRef<HTMLDialogElement>(null);
   const voteTimes = useRef<number[]>([]);
-  const selectItem = api.items.selectItem.useMutation();
-  const upvoteItem = api.items.upvoteItem.useMutation();
-  const downvoteItem = api.items.downvoteItem.useMutation();
+  const selectItem = api.items.selectItem.useMutation({
+    onError: (error) => {
+      toast(error.message);
+    },
+  });
+  const upvoteItem = api.items.upvoteItem.useMutation({
+    onError: (error) => {
+      toast(error.message);
+    },
+  });
+  const downvoteItem = api.items.downvoteItem.useMutation({
+    onError: (error) => {
+      toast(error.message);
+    },
+  });
   useEffect(() => {
     if (itemId?.id) {
       setItem(items?.find((item) => item.id === itemId.id));
