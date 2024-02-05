@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  authenticatedProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { lobbies, items } from "~/server/db/schema";
 import { init } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
@@ -13,7 +17,7 @@ const create = init({
 const lobbyTimeout = 1000 * 60 * 60 * 24 * 7; // 7 days
 const retries = 5;
 export const lobbyRouter = createTRPCRouter({
-  createLobby: publicProcedure
+  createLobby: authenticatedProcedure
     .input(
       z.object({ name: z.string().min(1), description: z.string().nullable() }),
     )

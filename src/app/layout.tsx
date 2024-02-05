@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TRPCReactProvider } from "~/trpc/react";
+import NavBar from "~/app/_components/NavBar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,7 +25,10 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`font-sans ${inter.variable}`}>
+        <body
+          className={`font-sans ${inter.variable} min-h-screen bg-gradient-to-b from-[#383838] to-[#15162c]`}
+        >
+          <NavBar />
           <TRPCReactProvider cookies={cookies().toString()}>
             {children}
           </TRPCReactProvider>

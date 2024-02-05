@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  authenticatedProcedure,
+  createTRPCRouter,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { lobbies, items, lobbyLogs } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { PusherServer } from "~/config/PusherServer";
@@ -7,7 +11,7 @@ import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { TRPCClientError } from "@trpc/client";
 
 export const itemRouter = createTRPCRouter({
-  addItem: publicProcedure
+  addItem: authenticatedProcedure
     .input(
       z.object({
         lobbyCuid: z.string(),
@@ -46,7 +50,7 @@ export const itemRouter = createTRPCRouter({
       );
       return item;
     }),
-  removeItem: publicProcedure
+  removeItem: authenticatedProcedure
     .input(
       z.object({
         lobbyCuid: z.string(),
@@ -63,7 +67,7 @@ export const itemRouter = createTRPCRouter({
         },
       );
     }),
-  selectItem: publicProcedure
+  selectItem: authenticatedProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const item = await ctx.db.query.items.findFirst({
@@ -95,7 +99,7 @@ export const itemRouter = createTRPCRouter({
         },
       });
     }),
-  upvoteItem: publicProcedure
+  upvoteItem: authenticatedProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const item = await ctx.db.query.items.findFirst({
@@ -120,7 +124,7 @@ export const itemRouter = createTRPCRouter({
         },
       );
     }),
-  downvoteItem: publicProcedure
+  downvoteItem: authenticatedProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const item = await ctx.db.query.items.findFirst({

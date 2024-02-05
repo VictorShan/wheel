@@ -1,20 +1,9 @@
 "use client";
-import { SignInButton, SignedIn } from "@clerk/clerk-react";
-import { SignedOut, UserButton } from "@clerk/nextjs";
 import type { ReactNode } from "react";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <>
-      <nav className="flex justify-between p-4">
-        <div>Wheel</div>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
-        <SignedOut>
-          <SignInButton />
-        </SignedOut>
-      </nav>
       {children}
       <footer className="flex items-center justify-center border-t p-4">
         <a
