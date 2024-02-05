@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  authenticatedProcedure,
-  createTRPCRouter,
-  publicProcedure,
-} from "~/server/api/trpc";
+import { authenticatedProcedure, createTRPCRouter } from "~/server/api/trpc";
 import { lobbies, items, lobbyLogs } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { PusherServer } from "~/config/PusherServer";

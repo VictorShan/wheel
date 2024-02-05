@@ -4,6 +4,7 @@ import { type Item } from "./types";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
 
 export default function ListItem({
   item,
@@ -18,12 +19,12 @@ export default function ListItem({
       className="my-2 flex items-center justify-between rounded-lg border-2 border-solid border-black p-2 dark:border-gray-400"
     >
       <span className="p-1">{item.longName}</span>
-      <Button item={item} chooseItem={chooseItem} />
+      <ChooseButton item={item} chooseItem={chooseItem} />
     </li>
   );
 }
 
-function Button({
+function ChooseButton({
   item,
   chooseItem,
 }: {
@@ -43,8 +44,8 @@ function Button({
   if (confirmDelete) {
     return (
       <div className="flex gap-2">
-        <button
-          className="btn"
+        <Button
+          variant="destructive"
           onClick={() => {
             removeItem.mutate({
               lobbyCuid: item.lobbyCuid,
@@ -53,21 +54,21 @@ function Button({
           }}
         >
           Delete
-        </button>
-        <button className="btn" onClick={() => setConfirmDelete(false)}>
+        </Button>
+        <Button variant="outline" onClick={() => setConfirmDelete(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
   return (
     <div className="flex gap-4">
-      <button className="btn" onClick={() => chooseItem(item.id)}>
+      <Button variant="outline" onClick={() => chooseItem(item.id)}>
         View
-      </button>
-      <button className="btn" onClick={() => setConfirmDelete(true)}>
+      </Button>
+      <Button variant="outline" onClick={() => setConfirmDelete(true)}>
         X
-      </button>
+      </Button>
     </div>
   );
 }

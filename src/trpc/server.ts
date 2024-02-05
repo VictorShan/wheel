@@ -42,7 +42,7 @@ export const api = createTRPCProxyClient<AppRouter>({
      * Components always run on the server, we can just call the procedure as a function.
      */
     () =>
-      ({ op, next }) =>
+      ({ op }) =>
         observable((observer) => {
           createContext()
             .then((ctx) => {

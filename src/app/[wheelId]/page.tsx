@@ -4,12 +4,12 @@ import { api } from "~/trpc/react";
 import { AddItem } from "../_components/add-item";
 import { useCallback, useState } from "react";
 import { type Item } from "../_components/types";
-import Modal from "../_components/Modal";
 import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { ItemsContext } from "../_components/providers";
 import LogListMemo from "../_components/LogList";
+import ItemDialog from "../_components/ItemDialog";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [itemId, setItemId] = useState<{ id: number }>();
@@ -81,7 +81,10 @@ export default function Page({ params }: { params: { wheelId: string } }) {
                     <ListItem
                       item={item}
                       key={item.id}
-                      chooseItem={(itemId: number) => setItemId({ id: itemId })}
+                      chooseItem={(itemId: number) => {
+                        console.log("clicked", itemId);
+                        setItemId({ id: itemId });
+                      }}
                     />
                   ))}
                 </ul>
@@ -92,7 +95,7 @@ export default function Page({ params }: { params: { wheelId: string } }) {
             </div>
           </div>
         </article>
-        <Modal itemId={itemId} close={closeModal} />
+        <ItemDialog itemId={itemId?.id} onClose={closeModal} />
       </ItemsContext.Provider>
     </main>
   );
