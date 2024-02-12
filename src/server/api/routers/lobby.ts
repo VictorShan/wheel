@@ -50,6 +50,7 @@ export const lobbyRouter = createTRPCRouter({
           cuid: newCuid,
           name: input.name,
           description: input.description,
+          administrators: ctx.userId ? [ctx.userId] : [],
         });
         return newCuid;
       }
@@ -97,5 +98,23 @@ export const lobbyRouter = createTRPCRouter({
           seed: input.seed,
         },
       );
+    }),
+  updatePostRequest: authenticatedProcedure
+    .input(
+      z.object({
+        lobbyId: z.string(),
+        postRequestBody: z.string(),
+        postRequestUrl: z.string().url(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(lobbies)
+        .set({
+          selectWebhookUrl: input.postRequestUrl,
+          selectWebhookBody: JSON.parse(input.postRequestBody),
+        })
+        .where(eq(lobbies.cuid, input.lobbyId))
+        .execute();
     }),
 });

@@ -13,17 +13,66 @@ import {
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
+import { replaceConstants } from "~/config/postRequestUtils";
+import { useUser } from "@clerk/nextjs";
 
 export default function ItemDialog({
   itemId,
   onClose,
+  postUrl,
+  postBody,
 }: {
+  postUrl?: string;
+  postBody?: object;
   itemId?: number;
   onClose: () => void;
 }) {
   const items = useContext(ItemsContext);
   const item = items?.find((item) => item.id === itemId);
+  const auth = useUser();
+  const userString =
+    auth.user?.fullName ??
+    auth.user?.username ??
+    auth.user?.emailAddresses.length
+      ? auth.user?.emailAddresses[0]?.emailAddress
+      : undefined;
+  const itemName = item?.longName ?? item?.shortName;
   const selectItem = api.items.selectItem.useMutation({
+    onSuccess: () => {
+      toast(`${itemName} selected`);
+      onClose();
+      if (postUrl === undefined) {
+        toast("No POST URL provided");
+        return;
+      }
+      if (!userString || !itemName) {
+        toast(
+          `Could not send post request by "${userString}" for item "${itemName}".`,
+        );
+        return;
+      }
+      const transformBody = replaceConstants(
+        userString,
+        itemName,
+        item?.url ?? "No URL Provided",
+      );
+
+      fetch(postUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: transformBody(JSON.stringify(postBody) ?? "{}"),
+      })
+        .then(() => {
+          toast("POST request sent");
+        })
+        .catch((e) => {
+          toast("Failed to send POST request");
+          console.error(e);
+        });
+    },
     onError: (error) => {
       toast(error.message);
     },
@@ -40,8 +89,6 @@ export default function ItemDialog({
   });
 
   if (!item) {
-    console.log("Item not found");
-
     return <></>;
   }
 

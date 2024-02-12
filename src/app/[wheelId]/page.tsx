@@ -10,11 +10,14 @@ import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { ItemsContext } from "../_components/providers";
 import LogListMemo from "../_components/LogList";
 import ItemDialog from "../_components/ItemDialog";
+import LobbySettings from "../_components/LobbySettings";
+import { Button } from "~/components/ui/button";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [itemId, setItemId] = useState<{ id: number }>();
   const [wheelItems, setItems] = useState<WheelItem[]>([]);
   const [willShuffle, setWillShuffle] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const lobbyInfo = api.lobbies.getLobbyInfo.useQuery(
     {
       lobbyCuid: params.wheelId,
@@ -51,7 +54,12 @@ export default function Page({ params }: { params: { wheelId: string } }) {
     <main className="flex min-h-screen w-screen items-center justify-center">
       <ItemsContext.Provider value={lobbyInfo.data?.items}>
         <article className="container p-6">
-          <h1 className="text-4xl">{lobbyInfo.data?.name ?? params.wheelId}</h1>
+          <div className="flex flex-row justify-between">
+            <h1 className="text-4xl">
+              {lobbyInfo.data?.name ?? params.wheelId}
+            </h1>
+            <Button onClick={() => setIsEditOpen(true)}>Edit Lobby</Button>
+          </div>
           <div className="flex flex-col justify-center md:flex-row">
             <div className="">
               <Wheel
@@ -95,8 +103,18 @@ export default function Page({ params }: { params: { wheelId: string } }) {
             </div>
           </div>
         </article>
-        <ItemDialog itemId={itemId?.id} onClose={closeModal} />
+        <ItemDialog
+          itemId={itemId?.id}
+          onClose={closeModal}
+          postUrl={lobbyInfo.data?.selectWebhookUrl ?? undefined}
+          postBody={lobbyInfo.data?.selectWebhookBody ?? undefined}
+        />
       </ItemsContext.Provider>
+      <LobbySettings
+        lobbyId={params.wheelId}
+        shouldOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
     </main>
   );
 }
