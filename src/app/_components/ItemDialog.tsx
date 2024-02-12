@@ -56,9 +56,10 @@ export default function ItemDialog({
         itemName,
         item?.url ?? "No URL Provided",
       );
+
       fetch(postUrl, {
         method: "POST",
-        mode: "cors",
+        mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
@@ -88,8 +89,6 @@ export default function ItemDialog({
   });
 
   if (!item) {
-    console.log("Item not found");
-
     return <></>;
   }
 
