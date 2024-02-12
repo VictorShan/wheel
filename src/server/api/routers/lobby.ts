@@ -99,4 +99,22 @@ export const lobbyRouter = createTRPCRouter({
         },
       );
     }),
+  updatePostRequest: authenticatedProcedure
+    .input(
+      z.object({
+        lobbyId: z.string(),
+        postRequestBody: z.string(),
+        postRequestUrl: z.string().url(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(lobbies)
+        .set({
+          selectWebhookUrl: input.postRequestUrl,
+          selectWebhookBody: JSON.parse(input.postRequestBody),
+        })
+        .where(eq(lobbies.cuid, input.lobbyId))
+        .execute();
+    }),
 });
