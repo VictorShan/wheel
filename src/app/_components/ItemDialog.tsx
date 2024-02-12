@@ -32,10 +32,10 @@ export default function ItemDialog({
   const auth = useUser();
   const userString =
     auth.user?.fullName ??
+    auth.user?.firstName ??
+    auth.user?.lastName ??
     auth.user?.username ??
-    auth.user?.emailAddresses.length
-      ? auth.user?.emailAddresses[0]?.emailAddress
-      : undefined;
+    undefined;
   const itemName = item?.longName ?? item?.shortName;
   const selectItem = api.items.selectItem.useMutation({
     onSuccess: () => {
