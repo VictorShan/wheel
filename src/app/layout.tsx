@@ -28,7 +28,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`font-sans ${inter.variable} min-h-screen bg-gradient-to-b from-[#FFF] to-[#777] dark:from-[#383838] dark:to-[#15162c]`}
+          className={`font-sans ${inter.variable} min-h-screen bg-slate-200 dark:bg-slate-900`}
         >
           <ThemeProvider
             attribute="class"
