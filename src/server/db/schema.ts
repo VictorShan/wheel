@@ -33,6 +33,12 @@ export const lobbies = mysqlTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     description: text("text"),
+    administrators: json("administrators")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    selectWebhookUrl: varchar("select_webhook_url", { length: 512 }),
+    selectWebhookBody: json("select_webhook_body").notNull().default({}),
   },
   (example) => ({
     nameIndex: index("name_idx").on(example.name),

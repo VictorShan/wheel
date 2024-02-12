@@ -50,6 +50,7 @@ export const lobbyRouter = createTRPCRouter({
           cuid: newCuid,
           name: input.name,
           description: input.description,
+          administrators: ctx.userId ? [ctx.userId] : [],
         });
         return newCuid;
       }
