@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { ReloadIcon } from "@radix-ui/react-icons";
+import { Input } from "~/components/ui/input";
 
 export function CreateLobby() {
   const router = useRouter();
@@ -30,24 +31,24 @@ export function CreateLobby() {
       className="flex flex-col gap-2"
     >
       <h1 className="text-center text-lg">Create Lobby</h1>
-      <input
+      <Input
         type="text"
         placeholder="Lobby Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full rounded-full px-4 py-2"
+        className="w-full px-4 py-2"
       />
-      <input
+      <Input
         type="text"
         placeholder="Description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="w-full rounded-full px-4 py-2"
+        className="w-full px-4 py-2"
       />
       <Button
         variant="default"
         type="submit"
-        className="rounded-full font-semibold transition"
+        className="font-semibold transition"
         disabled={createLobby.isLoading}
       >
         {createLobby.isLoading && (

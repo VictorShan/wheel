@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
 
 export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
   const router = useRouter();
@@ -43,23 +44,23 @@ export function AddItem({ lobbyCuid }: { lobbyCuid: string }) {
           }}
           className="flex flex-col gap-2"
         >
-          <input
+          <Input
             type="text"
             placeholder="Item Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-full px-4 py-2 text-black"
+            className="w-full px-4 py-2"
           />
-          <input
+          <Input
             type="text"
             placeholder="URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full rounded-full px-4 py-2 text-black"
+            className="w-full px-4 py-2"
           />
           <Button
             type="submit"
-            className="rounded-full px-10 py-3 transition"
+            className="px-10 py-3 transition"
             disabled={addItem.isLoading}
           >
             {addItem.isLoading && (
