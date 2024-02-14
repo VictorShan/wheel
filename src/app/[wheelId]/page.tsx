@@ -12,6 +12,7 @@ import LogListMemo from "../_components/LogList";
 import ItemDialog from "../_components/ItemDialog";
 import LobbySettings from "../_components/LobbySettings";
 import { Button } from "~/components/ui/button";
+import ItemTable from "../_components/ItemTable";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [itemId, setItemId] = useState<{ id: number }>();
@@ -81,21 +82,11 @@ export default function Page({ params }: { params: { wheelId: string } }) {
               </label>
             </div>
             <div className="flex flex-col gap-8 p-5">
-              <AddItem lobbyCuid={params.wheelId} />
               <section>
-                <h2>Items</h2>
-                <ul>
-                  {lobbyInfo.data?.items.map((item) => (
-                    <ListItem
-                      item={item}
-                      key={item.id}
-                      chooseItem={(itemId: number) => {
-                        console.log("clicked", itemId);
-                        setItemId({ id: itemId });
-                      }}
-                    />
-                  ))}
-                </ul>
+                <AddItem lobbyCuid={params.wheelId} />
+                <ItemTable
+                  onItemSelect={(itemId) => setItemId({ id: itemId })}
+                />
               </section>
               <section>
                 <LogListMemo lobbyId={params.wheelId} />
