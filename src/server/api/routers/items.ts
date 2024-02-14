@@ -7,6 +7,32 @@ import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { TRPCClientError } from "@trpc/client";
 
 export const itemRouter = createTRPCRouter({
+  updateItem: authenticatedProcedure
+    .input(
+      z.object({
+        lobbyCuid: z.string(),
+        itemId: z.number(),
+        longName: z.string().min(1),
+        url: z.string().url().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(items)
+        .set({
+          longName: input.longName,
+          url: input.url,
+        })
+        .where(eq(items.id, input.itemId))
+        .execute();
+      await PusherServer.trigger(
+        getLobbyChannelName(input.lobbyCuid),
+        ITEM_EVENT,
+        {
+          item: input.itemId,
+        },
+      );
+    }),
   addItem: authenticatedProcedure
     .input(
       z.object({

@@ -4,7 +4,6 @@ import { api } from "~/trpc/react";
 import { AddItem } from "../_components/add-item";
 import { useCallback, useState } from "react";
 import { type Item } from "../_components/types";
-import ListItem from "../_components/ListItem";
 import { usePusher } from "~/app/_components/usePusher";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { ItemsContext } from "../_components/providers";
