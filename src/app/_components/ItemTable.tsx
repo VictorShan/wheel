@@ -9,18 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { ColumnDef, flexRender, getCoreRowModel } from "@tanstack/react-table";
-import { Item } from "./types";
-import { useReactTable } from "@tanstack/react-table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+} from "@tanstack/react-table";
+import type { Item } from "./types";
+import { useReactTable } from "@tanstack/react-table";
 import { Button } from "~/components/ui/button";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 
 export default function ItemTable({
   onItemSelect,
@@ -96,9 +92,4 @@ export default function ItemTable({
       </TableFooter>
     </Table>
   );
-}
-
-interface DataTableProps {
-  columns: ColumnDef<Item>[];
-  data: Item[];
 }

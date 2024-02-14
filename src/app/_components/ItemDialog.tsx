@@ -225,7 +225,7 @@ export default function ItemDialog({
                   updateItem.mutate({
                     lobbyCuid: item.lobbyCuid,
                     itemId: itemId!,
-                    longName: nameRef.current || item.longName,
+                    longName: nameRef.current ?? item.longName,
                     url: urlRef.current ?? undefined,
                   });
                 }}
