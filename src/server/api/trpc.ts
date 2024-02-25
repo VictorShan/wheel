@@ -11,6 +11,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
+import { rateLimitPerHour } from "../utils";
 
 /**
  * 1. CONTEXT
@@ -81,10 +82,11 @@ export const publicProcedure = t.procedure;
 /**
  * Must be authenticated to use
  */
-const isAuthed = t.middleware(({ next, ctx }) => {
+const isAuthed = t.middleware(async ({ next, ctx }) => {
   if (!ctx.userId) {
     throw new Error("Not authenticated");
   }
+  await rateLimitPerHour(ctx.userId, "authenticatedOperation", 50);
   return next({
     ctx: {
       user: ctx.userId,
