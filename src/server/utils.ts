@@ -11,7 +11,7 @@ export async function rateLimitPerHour(
   const now = new Date();
   const nextFullHour = getNextFullHourEpochMillis(now);
   const rateLimitKey = `${userId}-${operation}:${now.getHours()}`;
-  const selections = (await kv.get(rateLimitKey)) as number;
+  const selections: number = (await kv.get(rateLimitKey))!;
   if (selections && selections >= limitPerHour) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
