@@ -8,7 +8,7 @@ jobs:
   playwright-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    environment: ${{ vars.ENVIRONMENT_STAGE }}
+    environment: Preview
     steps:
       - name: Show env var
         run: |
