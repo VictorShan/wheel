@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: Preview
     steps:
-      - name: Show env var
-        run: |
-          echo ${{ vars.ENVIRONMENT_STAGE }} ${{ secrets.SOKETI_APP_ID }} ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -26,6 +23,10 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          KV_REST_API_READ_ONLY_TOKEN: ${{ secrets.KV_REST_API_READ_ONLY_TOKEN }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_URL: ${{ secrets.KV_URL }}
           SOKETI_APP_ID: ${{ secrets.SOKETI_APP_ID }}
           SOKETI_SECRET: ${{ secrets.SOKETI_SECRET }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
