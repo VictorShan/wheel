@@ -8,11 +8,11 @@ jobs:
   playwright-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    environment: Preview
+    environment: ${{ vars.ENVIRONMENT_STAGE }}
     steps:
       - name: Show env var
         run: |
-          echo $NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY 
+          echo ${{ vars.ENVIRONMENT_STAGE }} ${{ secrets.SOKETI_APP_ID }} ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
