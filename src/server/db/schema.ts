@@ -3,14 +3,11 @@
 
 import { relations, sql } from "drizzle-orm";
 import {
-  bigint,
   index,
-  mysqlTableCreator,
-  timestamp,
-  varchar,
+  integer,
+  sqliteTableCreator,
   text,
-  json,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/sqlite-core";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -18,27 +15,31 @@ import {
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-export const mysqlTable = mysqlTableCreator((name) => `lunch-wheel_${name}`);
+export const sqlTable = sqliteTableCreator((name) => `wheel_${name}`);
 
-export const lobbies = mysqlTable(
+export const lobbies = sqlTable(
   "lobby",
   {
-    cuid: varchar("cuid", { length: 64 }).primaryKey(),
-    name: varchar("name", { length: 256 }),
-    createdAt: timestamp("created_at")
+    cuid: text("cuid", { length: 64 }).primaryKey(),
+    name: text("name", { length: 256 }),
+    createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp("updatedAt").onUpdateNow(),
-    lastReadAt: timestamp("last_read_at")
+    updatedAt: text("updatedAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    lastReadAt: text("last_read_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     description: text("text"),
-    administrators: json("administrators")
+    administrators: text("administrators")
       .$type<string[]>()
       .notNull()
       .default([]),
-    selectWebhookUrl: varchar("select_webhook_url", { length: 512 }),
-    selectWebhookBody: json("select_webhook_body").notNull().default({}),
+    selectWebhookUrl: text("select_webhook_url"),
+    selectWebhookBody: text("select_webhook_body", { mode: "json" })
+      .notNull()
+      .default({}),
   },
   (example) => ({
     nameIndex: index("name_idx").on(example.name),
@@ -50,36 +51,40 @@ export const lobbyRelations = relations(lobbies, ({ many }) => ({
   logs: many(lobbyLogs),
 }));
 
-export const items = mysqlTable(
+export const items = sqlTable(
   "item",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-    lobbyCuid: varchar("lobby_cuid", { length: 64 }).notNull(),
-    longName: varchar("name", { length: 256 }).notNull(),
-    shortName: varchar("short_name", { length: 20 }),
-    createdAt: timestamp("created_at")
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    lobbyCuid: text("lobby_cuid", { length: 64 }).notNull(),
+    longName: text("name", { length: 256 }).notNull(),
+    shortName: text("short_name", { length: 20 }),
+    createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: timestamp("updatedAt").onUpdateNow(),
-    upvotes: bigint("upvotes", { mode: "number" }).default(0).notNull(),
-    url: varchar("url", { length: 512 }),
-    imageUrl: varchar("image_url", { length: 512 }),
-    lastSelectedAt: timestamp("last_selected_at").defaultNow().notNull(),
+    updatedAt: text("updatedAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    upvotes: integer("upvotes", { mode: "number" }).default(0).notNull(),
+    url: text("url", { length: 512 }),
+    imageUrl: text("image_url", { length: 512 }),
+    lastSelectedAt: text("last_selected_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
   },
   (example) => ({
     nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
   }),
 );
 
-export const lobbyLogs = mysqlTable(
+export const lobbyLogs = sqlTable(
   "lobby_log",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-    lobbyCuid: varchar("lobby_cuid", { length: 64 }).notNull(),
-    timestamp: timestamp("timestamp")
+    id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+    lobbyCuid: text("lobby_cuid", { length: 64 }).notNull(),
+    timestamp: text("timestamp")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    data: json("data")
+    data: text("data", { mode: "json" })
       .$type<{
         action: string;
         message: string;
