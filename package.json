@@ -6,7 +6,7 @@
   "scripts": {
     "build": "next build",
     "db:generate": "dotenv drizzle-kit generate:sqlite",
-    "db:migrate": "dotenv drizzle-kit migrate",
+    "db:migrate": "dotenv npx tsx src/server/db/index.ts",
     "db:push": "dotenv drizzle-kit push:sqlite",
     "db:studio": "dotenv drizzle-kit studio",
     "dev": "next dev",

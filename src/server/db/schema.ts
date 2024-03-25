@@ -32,17 +32,13 @@ export const lobbies = sqlTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     description: text("text"),
-    administrators: text("administrators")
-      .$type<string[]>()
-      .notNull()
-      .default([]),
     selectWebhookUrl: text("select_webhook_url"),
     selectWebhookBody: text("select_webhook_body", { mode: "json" })
       .notNull()
-      .default({}),
+      .default("{}"),
   },
   (example) => ({
-    nameIndex: index("name_idx").on(example.name),
+    nameIndex: index("lobby_name_idx").on(example.name),
   }),
 );
 
@@ -61,7 +57,7 @@ export const items = sqlTable(
     createdAt: text("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updatedAt: text("updatedAt")
+    updatedAt: text("updated_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     upvotes: integer("upvotes", { mode: "number" }).default(0).notNull(),
@@ -72,7 +68,7 @@ export const items = sqlTable(
       .notNull(),
   },
   (example) => ({
-    nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
+    nameIndex: index("item_lobbyId_idx").on(example.lobbyCuid),
   }),
 );
 
@@ -92,7 +88,7 @@ export const lobbyLogs = sqlTable(
       .notNull(),
   },
   (example) => ({
-    nameIndex: index("lobbyId_idx").on(example.lobbyCuid),
+    nameIndex: index("lobby_log_lobbyId_idx").on(example.lobbyCuid),
   }),
 );
 
