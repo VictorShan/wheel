@@ -119,7 +119,7 @@ function generateWheelItems(
       return Math.min(acc, item.upvotes);
     }, Infinity) ?? 1;
   items?.forEach((item, i) => {
-    const dateDiff = Date.now() - item.lastSelectedAt.getTime();
+    const dateDiff = Date.now() - new Date(item.lastSelectedAt).getTime();
     const daysSinceLastSelected = Math.ceil(dateDiff / (1000 * 60 * 60 * 24));
     const daysSinceLastSelectedWeight = Math.min(1, daysSinceLastSelected / 5);
     const weight = item.upvotes - minimumWeight + 1; // Minimum weight will be 1

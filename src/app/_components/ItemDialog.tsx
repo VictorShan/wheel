@@ -159,7 +159,7 @@ export default function ItemDialog({
         <DialogDescription>
           <p>
             Last ordered:{" "}
-            {item.lastSelectedAt.toLocaleDateString("en-US", {
+            {new Date(item.lastSelectedAt).toLocaleDateString("en-US", {
               weekday: "long",
               year: "numeric",
               month: "long",

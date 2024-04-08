@@ -50,7 +50,6 @@ export const lobbyRouter = createTRPCRouter({
           cuid: newCuid,
           name: input.name,
           description: input.description,
-          administrators: ctx.userId ? [ctx.userId] : [],
         });
         return newCuid;
       }
@@ -59,7 +58,7 @@ export const lobbyRouter = createTRPCRouter({
     .input(z.object({ lobbyCuid: z.string() }))
     .query(async ({ ctx, input }) => {
       await ctx.db.update(lobbies).set({
-        lastReadAt: new Date(),
+        lastReadAt: new Date().toString(),
       });
       const result = await ctx.db.query.lobbies.findFirst({
         where: eq(lobbies.cuid, input.lobbyCuid),
