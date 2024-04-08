@@ -45,3 +45,6 @@ yarn-error.log*
 /blob-report/
 /playwright/.cache/
 tests-examples
+
+# Drizzle
+drizzle-migration

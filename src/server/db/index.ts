@@ -1,12 +1,17 @@
-import { Client } from "@planetscale/database";
-import { drizzle } from "drizzle-orm/planetscale-serverless";
+import { resolve } from "node:path";
+import { db } from "~/server/db/db";
+import { migrate } from "drizzle-orm/libsql/migrator";
 
-import { env } from "~/env";
-import * as schema from "./schema";
-
-export const db = drizzle(
-  new Client({
-    url: env.DATABASE_URL,
-  }).connection(),
-  { schema }
-);
+await (async () => {
+  console.log("Migrating database");
+  console.log(
+    "Database URL:",
+    resolve(import.meta.dirname, "../../../drizzle-migration"),
+  );
+  await migrate(db, {
+    migrationsFolder: resolve(
+      import.meta.dirname,
+      "../../../drizzle-migration",
+    ),
+  });
+})();

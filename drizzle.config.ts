@@ -4,9 +4,12 @@ import { env } from "~/env";
 
 export default {
   schema: "./src/server/db/schema.ts",
-  driver: "mysql2",
+  out: "./drizzle-migration",
+  driver: "turso",
   dbCredentials: {
-    connectionString: env.DATABASE_URL,
+    url: env.TURSO_DATABASE_URL,
+    authToken: env.TURSO_AUTH_TOKEN,
   },
-  tablesFilter: ["lunch-wheel_*"],
+  tablesFilter: ["wheel_*"],
+  verbose: true,
 } satisfies Config;
