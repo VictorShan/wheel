@@ -61,7 +61,7 @@ export const itemRouter = createTRPCRouter({
           shortName: input.item.shortName,
           url: input.item.url,
           imageUrl: input.item.imageUrl,
-          lastSelectedAt: new Date(1000), // Earliest possible date
+          lastSelectedAt: new Date(1000).toString(), // Earliest possible date
         })
         .execute();
       await PusherServer.trigger(
@@ -103,7 +103,7 @@ export const itemRouter = createTRPCRouter({
       await ctx.db
         .update(items)
         .set({
-          lastSelectedAt: new Date(),
+          lastSelectedAt: new Date().toString(),
         })
         .where(eq(items.id, input.itemId))
         .execute();
@@ -116,7 +116,7 @@ export const itemRouter = createTRPCRouter({
       );
       await ctx.db.insert(lobbyLogs).values({
         lobbyCuid: input.lobbyCuid,
-        timestamp: new Date(),
+        timestamp: new Date().toString(),
         data: {
           action: "selectItem",
           message: `Item ${item.longName || item.shortName} selected`,

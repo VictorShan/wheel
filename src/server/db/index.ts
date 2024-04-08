@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { db } from "~/server/db/db";
 import { migrate } from "drizzle-orm/libsql/migrator";
 
-(async () => {
+await (async () => {
   console.log("Migrating database");
   console.log(
     "Database URL:",
