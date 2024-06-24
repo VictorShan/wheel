@@ -59,7 +59,7 @@ export default function Wheel({
     if (velocity.current !== 0) return;
     const seed = shouldShuffleRef.current ? Math.random() : undefined;
     setItems(stableShuffle(itemsRef.current, seed));
-    velocity.current = Math.random() * 20 + 10;
+    velocity.current = Math.random() * 10 + 5;
     startSpinApi.mutate({
       lobbyCuid,
       initialRotation: rotation.current,
