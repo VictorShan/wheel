@@ -25,11 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body
-          className={`font-sans ${inter.variable} min-h-screen bg-slate-200 dark:bg-slate-900`}
-        >
+    <html lang="en">
+      <body
+        className={`font-sans ${inter.variable} min-h-screen bg-slate-200 dark:bg-slate-900`}
+      >
+        <ClerkProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -41,8 +41,8 @@ export default function RootLayout({
             </TRPCReactProvider>
             <Toaster />
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

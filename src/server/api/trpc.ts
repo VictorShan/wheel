@@ -86,7 +86,7 @@ const isAuthed = t.middleware(async ({ next, ctx }) => {
   if (!ctx.userId) {
     throw new Error("Not authenticated");
   }
-  await rateLimitPerHour(ctx.userId, "authenticatedOperation", 50);
+  // await rateLimitPerHour(ctx.userId, "authenticatedOperation", 50);
   return next({
     ctx: {
       user: ctx.userId,
