@@ -16,7 +16,7 @@
     "test:report": "playwright show-report"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "^4.31.3",
     "@hookform/resolvers": "^3.3.4",
     "@libsql/client": "^0.5.6",
     "@paralleldrive/cuid2": "^2.2.2",

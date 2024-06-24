@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { PusherServer } from "~/config/PusherServer";
 import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
 import { TRPCClientError } from "@trpc/client";
-import { rateLimitPerHour } from "~/server/utils";
+// import { rateLimitPerHour } from "~/server/utils";
 
 export const itemRouter = createTRPCRouter({
   updateItem: authenticatedProcedure
@@ -93,7 +93,7 @@ export const itemRouter = createTRPCRouter({
   selectItem: authenticatedProcedure
     .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await rateLimitPerHour(ctx.userId!, "selectItem", 3);
+      // await rateLimitPerHour(ctx.userId!, "selectItem", 3);
       const item = await ctx.db.query.items.findFirst({
         where: eq(items.id, input.itemId),
       });
