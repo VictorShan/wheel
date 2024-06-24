@@ -75,7 +75,6 @@ export default function Page({ params }: { params: { wheelId: string } }) {
                   checked={willShuffle}
                   onChange={() => {
                     setWillShuffle(!willShuffle);
-                    console.log(!willShuffle);
                   }}
                 />
               </label>

@@ -139,7 +139,6 @@ export default function ItemDialog({
                 placeholder={item.url ?? "URL"}
                 onChange={(e) => {
                   urlRef.current = e.target.value;
-                  console.log(urlRef.current);
                 }}
               />
             </div>
@@ -220,8 +219,6 @@ export default function ItemDialog({
               </Button>
               <Button
                 onClick={() => {
-                  console.log("Url: ", urlRef.current);
-
                   updateItem.mutate({
                     lobbyCuid: item.lobbyCuid,
                     itemId: itemId!,
