@@ -12,6 +12,7 @@ import ItemDialog from "../_components/ItemDialog";
 import LobbySettings from "../_components/LobbySettings";
 import { Button } from "~/components/ui/button";
 import ItemTable from "../_components/ItemTable";
+import { itemWeight } from "../_components/wheelWeights";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
   const [itemId, setItemId] = useState<{ id: number }>();
@@ -112,24 +113,13 @@ function generateWheelItems(
   items: Item[] | undefined,
   selectItem: (i: number) => void,
 ): WheelItem[] {
-  const wheelItems: WheelItem[] = [];
-  const minimumWeight =
-    items?.reduce((acc, item) => {
-      return Math.min(acc, item.upvotes);
-    }, Infinity) ?? 1;
-  items?.forEach((item, i) => {
-    const dateDiff = Date.now() - new Date(item.lastSelectedAt).getTime();
-    const daysSinceLastSelected = Math.ceil(dateDiff / (1000 * 60 * 60 * 24));
-    const daysSinceLastSelectedWeight = Math.min(1, daysSinceLastSelected / 5);
-    const weight = item.upvotes - minimumWeight + 1; // Minimum weight will be 1
-
-    wheelItems.push({
+  const wheelItems: WheelItem[] =
+    items?.map((item, i) => ({
       longName: item.longName,
       shortName: item.shortName,
-      weight: weight * daysSinceLastSelectedWeight,
+      weight: itemWeight(item),
       callback: () => selectItem(i),
-    });
-  });
+    })) ?? [];
   if (wheelItems.length === 0) return randomItems;
   return wheelItems;
 }
