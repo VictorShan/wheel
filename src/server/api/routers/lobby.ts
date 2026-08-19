@@ -4,22 +4,46 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import { lobbies, items } from "~/server/db/schema";
+import { lobbies, items, lobbyLogs } from "~/server/db/schema";
 import { init } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
-import { PusherServer } from "~/config/PusherServer";
-import { SPIN_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { SPIN_EVENT } from "~/config/PusherConstants";
+import { TRPCError } from "@trpc/server";
+import { broadcastToLobby } from "~/config/broadcast";
 
 const create = init({
   fingerprint: "lobby",
   length: 10,
 });
 const lobbyTimeout = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * The webhook body reaches us as a JSON column, but rows written before it was stored as JSON (and
+ * the column default) come back as a raw string. Callers want an object either way.
+ */
+function asObject(value: unknown): Record<string, unknown> {
+  const parsed =
+    typeof value === "string" ? tryParseJson(value) : (value ?? null);
+  return typeof parsed === "object" && parsed !== null
+    ? (parsed as Record<string, unknown>)
+    : {};
+}
+
+function tryParseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
 const retries = 5;
 export const lobbyRouter = createTRPCRouter({
   createLobby: authenticatedProcedure
     .input(
-      z.object({ name: z.string().min(1), description: z.string().nullable() }),
+      z.object({
+        name: z.string().trim().min(1),
+        description: z.string().nullable(),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       for (let i = 0; i < retries; i++) {
@@ -41,6 +65,12 @@ export const lobbyRouter = createTRPCRouter({
               .delete(items)
               .where(eq(items.lobbyCuid, foundLobby.cuid))
               .execute();
+            // Logs are keyed by cuid too, so leaving them behind would show the previous
+            // lobby's history to whoever gets this cuid next.
+            await ctx.db
+              .delete(lobbyLogs)
+              .where(eq(lobbyLogs.lobbyCuid, foundLobby.cuid))
+              .execute();
           } else {
             continue; // found lobby but already being used
           }
@@ -53,21 +83,37 @@ export const lobbyRouter = createTRPCRouter({
         });
         return newCuid;
       }
+      // Returning undefined here would send the browser to /undefined, which renders as an empty
+      // wheel and looks like a working lobby.
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Could not find a free wheel address. Please try again.",
+      });
     }),
   getLobbyInfo: publicProcedure
     .input(z.object({ lobbyCuid: z.string() }))
     .query(async ({ ctx, input }) => {
-      await ctx.db.update(lobbies).set({
-        lastReadAt: new Date().toString(),
-      });
       const result = await ctx.db.query.lobbies.findFirst({
         where: eq(lobbies.cuid, input.lobbyCuid),
         with: {
           items: true,
         },
       });
-      result?.items.sort((a, b) => a.upvotes - b.upvotes);
-      return result;
+      if (!result) {
+        return result;
+      }
+      // Scoped to this lobby: without the where clause every read stamped every lobby in the
+      // database, which also made last_read_at useless for expiry.
+      await ctx.db
+        .update(lobbies)
+        .set({ lastReadAt: new Date().toISOString() })
+        .where(eq(lobbies.cuid, input.lobbyCuid))
+        .execute();
+      // Best first, with a stable tiebreak so the table doesn't reshuffle between refetches.
+      result.items.sort(
+        (a, b) => b.upvotes - a.upvotes || a.longName.localeCompare(b.longName),
+      );
+      return { ...result, selectWebhookBody: asObject(result.selectWebhookBody) };
     }),
   spin: publicProcedure
     .input(
@@ -89,20 +135,30 @@ export const lobbyRouter = createTRPCRouter({
         intialRotation: input.initialRotation,
         initialVelocity: input.initialVelocity,
       };
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        SPIN_EVENT,
-        {
-          spin,
-          seed: input.seed,
-        },
-      );
+      await broadcastToLobby(input.lobbyCuid, SPIN_EVENT, {
+        spin,
+        seed: input.seed,
+      });
     }),
   updatePostRequest: authenticatedProcedure
     .input(
       z.object({
         lobbyId: z.string(),
-        postRequestBody: z.string(),
+        postRequestBody: z
+          .string()
+          .transform((value, ctx) => {
+            try {
+              return JSON.parse(value) as unknown;
+            } catch {
+              // An unguarded JSON.parse here answered a bad body with a 500.
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Post body must be valid JSON",
+              });
+              return z.NEVER;
+            }
+          })
+          .pipe(z.record(z.unknown())),
         postRequestUrl: z.string().url(),
       }),
     )
@@ -111,7 +167,8 @@ export const lobbyRouter = createTRPCRouter({
         .update(lobbies)
         .set({
           selectWebhookUrl: input.postRequestUrl,
-          selectWebhookBody: JSON.parse(input.postRequestBody),
+          selectWebhookBody: input.postRequestBody,
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(lobbies.cuid, input.lobbyId))
         .execute();
