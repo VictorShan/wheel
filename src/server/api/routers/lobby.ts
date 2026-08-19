@@ -4,39 +4,19 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import { lobbies, items, lobbyLogs } from "~/server/db/schema";
 import { init } from "@paralleldrive/cuid2";
-import { eq } from "drizzle-orm";
 import { SPIN_EVENT } from "~/config/PusherConstants";
 import { TRPCError } from "@trpc/server";
 import { broadcastToLobby } from "~/config/broadcast";
+import * as store from "~/server/db/lobbyStore";
 
 const create = init({
   fingerprint: "lobby",
   length: 10,
 });
 const lobbyTimeout = 1000 * 60 * 60 * 24 * 7; // 7 days
-
-/**
- * The webhook body reaches us as a JSON column, but rows written before it was stored as JSON (and
- * the column default) come back as a raw string. Callers want an object either way.
- */
-function asObject(value: unknown): Record<string, unknown> {
-  const parsed =
-    typeof value === "string" ? tryParseJson(value) : value ?? null;
-  return typeof parsed === "object" && parsed !== null
-    ? (parsed as Record<string, unknown>)
-    : {};
-}
-
-function tryParseJson(value: string): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
 const retries = 5;
+
 export const lobbyRouter = createTRPCRouter({
   createLobby: authenticatedProcedure
     .input(
@@ -45,46 +25,34 @@ export const lobbyRouter = createTRPCRouter({
         description: z.string().nullable(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       for (let i = 0; i < retries; i++) {
         const newCuid = create();
-        const foundLobby = await ctx.db.query.lobbies.findFirst({
-          where: eq(lobbies.cuid, newCuid),
-        });
-        if (foundLobby) {
-          const createdAt = new Date(foundLobby.createdAt);
-          const now = new Date();
-          const diff = now.getTime() - createdAt.getTime();
-          if (diff > lobbyTimeout) {
-            // found lobby has expired
-            await ctx.db
-              .delete(lobbies)
-              .where(eq(lobbies.cuid, foundLobby.cuid))
-              .execute();
-            await ctx.db
-              .delete(items)
-              .where(eq(items.lobbyCuid, foundLobby.cuid))
-              .execute();
-            // Logs are keyed by cuid too, so leaving them behind would show the previous
-            // lobby's history to whoever gets this cuid next.
-            await ctx.db
-              .delete(lobbyLogs)
-              .where(eq(lobbyLogs.lobbyCuid, foundLobby.cuid))
-              .execute();
-          } else {
-            continue; // found lobby but already being used
-          }
-        }
-
-        await ctx.db.insert(lobbies).values({
+        const claim = await store.createLobby({
           cuid: newCuid,
           name: input.name,
           description: input.description,
         });
-        return newCuid;
+        if (claim === "created") return newCuid;
+
+        // Taken. Reclaim it only if whoever had it is long gone.
+        const existing = await store.getLobby(newCuid);
+        if (!existing) continue;
+        const age = Date.now() - Date.parse(existing.createdAt);
+        if (!Number.isNaN(age) && age > lobbyTimeout) {
+          // Takes the items and the log with it, so the next owner of this cuid doesn't inherit
+          // the previous wheel's history.
+          await store.deleteLobby(newCuid);
+          const retry = await store.createLobby({
+            cuid: newCuid,
+            name: input.name,
+            description: input.description,
+          });
+          if (retry === "created") return newCuid;
+        }
       }
-      // Returning undefined here would send the browser to /undefined, which renders as an empty
-      // wheel and looks like a working lobby.
+      // Returning undefined here would send the browser to /undefined, which renders as a
+      // plausible empty wheel.
       throw new TRPCError({
         code: "CONFLICT",
         message: "Could not find a free wheel address. Please try again.",
@@ -92,31 +60,18 @@ export const lobbyRouter = createTRPCRouter({
     }),
   getLobbyInfo: publicProcedure
     .input(z.object({ lobbyCuid: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const result = await ctx.db.query.lobbies.findFirst({
-        where: eq(lobbies.cuid, input.lobbyCuid),
-        with: {
-          items: true,
-        },
-      });
-      if (!result) {
-        return result;
-      }
-      // Scoped to this lobby: without the where clause every read stamped every lobby in the
-      // database, which also made last_read_at useless for expiry.
-      await ctx.db
-        .update(lobbies)
-        .set({ lastReadAt: new Date().toISOString() })
-        .where(eq(lobbies.cuid, input.lobbyCuid))
-        .execute();
+    .query(async ({ input }) => {
+      // One round trip for the wheel and every item on it.
+      const lobby = await store.getLobbyWithItems(input.lobbyCuid);
+      if (!lobby) return undefined;
+      // Fire and forget, and only when the stamp is stale: a viewer shouldn't wait on a write
+      // whose result they never see.
+      store.touchLobbyRead(lobby);
       // Best first, with a stable tiebreak so the table doesn't reshuffle between refetches.
-      result.items.sort(
+      lobby.items.sort(
         (a, b) => b.upvotes - a.upvotes || a.longName.localeCompare(b.longName),
       );
-      return {
-        ...result,
-        selectWebhookBody: asObject(result.selectWebhookBody),
-      };
+      return lobby;
     }),
   spin: publicProcedure
     .input(
@@ -127,12 +82,8 @@ export const lobbyRouter = createTRPCRouter({
         seed: z.number().optional(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      const itemIds = (
-        await ctx.db.query.items.findMany({
-          where: eq(items.lobbyCuid, input.lobbyCuid),
-        })
-      ).map((item) => item.id);
+    .mutation(async ({ input }) => {
+      const itemIds = await store.listItemIds(input.lobbyCuid);
       const spin = {
         itemIds: itemIds.sort(),
         intialRotation: input.initialRotation,
@@ -165,15 +116,14 @@ export const lobbyRouter = createTRPCRouter({
         postRequestUrl: z.string().url(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(lobbies)
-        .set({
-          selectWebhookUrl: input.postRequestUrl,
-          selectWebhookBody: input.postRequestBody,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(lobbies.cuid, input.lobbyId))
-        .execute();
+    .mutation(async ({ input }) => {
+      const updated = await store.updateLobbyWebhook({
+        cuid: input.lobbyId,
+        selectWebhookUrl: input.postRequestUrl,
+        selectWebhookBody: input.postRequestBody,
+      });
+      if (!updated) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lobby not found" });
+      }
     }),
 });

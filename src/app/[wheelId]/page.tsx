@@ -15,7 +15,7 @@ import ItemTable from "../_components/ItemTable";
 import { itemWeight } from "../_components/wheelWeights";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
-  const [itemId, setItemId] = useState<{ id: number }>();
+  const [itemId, setItemId] = useState<{ id: string }>();
   const [wheelItems, setItems] = useState<WheelItem[]>([]);
   const [willShuffle, setWillShuffle] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);

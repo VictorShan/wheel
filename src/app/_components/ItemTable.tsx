@@ -21,7 +21,7 @@ import { Button } from "~/components/ui/button";
 export default function ItemTable({
   onItemSelect,
 }: {
-  onItemSelect: (itemId: number) => void;
+  onItemSelect: (itemId: string) => void;
 }) {
   const items = useContext(ItemsContext);
   const columns: ColumnDef<Item>[] = [

@@ -5,7 +5,7 @@ export type ApiOutput = inferRouterOutputs<AppRouter>;
 export type LobbyInfo = NonNullable<ApiOutput["lobbies"]["getLobbyInfo"]>;
 export type Item = LobbyInfo["items"][number];
 export type Spin = {
-  itemIds: number[];
+  itemIds: string[];
   intialRotation: number;
   initialVelocity: number;
 };

@@ -7,8 +7,16 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    TURSO_DATABASE_URL: z.string().url(),
-    TURSO_AUTH_TOKEN: z.string(),
+    AWS_REGION: z.string().min(1),
+    DDB_TABLE_NAME: z.string().min(1),
+    /** Set to point at a local DynamoDB (dynalite, DynamoDB Local); unset in production. */
+    DDB_ENDPOINT: z.string().url().optional(),
+    /**
+     * Turso is only read by the one-shot migration script now that the app runs on DynamoDB, so
+     * these are optional: the app boots without them.
+     */
+    TURSO_DATABASE_URL: z.string().url().optional(),
+    TURSO_AUTH_TOKEN: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -33,6 +41,9 @@ export const env = createEnv({
    * middlewares) or client-side so we need to destruct manually.
    */
   runtimeEnv: {
+    AWS_REGION: process.env.AWS_REGION,
+    DDB_TABLE_NAME: process.env.DDB_TABLE_NAME,
+    DDB_ENDPOINT: process.env.DDB_ENDPOINT,
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
     TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
     NODE_ENV: process.env.NODE_ENV,

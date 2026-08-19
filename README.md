@@ -28,8 +28,22 @@ the wheel and see what option is chosen.
 ## Stack
 
 - Next.js
-- PlanetScale
-- _Clerk (unused)_ - I was planning on using Clerk for authentication but I didn't think it was
-  necessary for this project.
+- DynamoDB (single table; see `src/server/db/lobbyStore.ts`)
+- Clerk for authentication - creating a wheel, adding items and voting need an account, while
+  viewing a wheel does not
+- Soketi (self-hosted Pusher) to broadcast spins to everyone looking at the same wheel
+
+## Running it locally
+
+```bash
+cp .env.example .env      # fill in Clerk and Soketi; the DynamoDB defaults work as-is
+npm install
+npm run ddb:local         # local DynamoDB on :4567, in its own terminal
+npm run ddb:create-table  # once
+npm run dev
+```
+
+`npm test` runs the Playwright suite; `npx playwright test --project=store` runs just the data layer
+tests, which start their own local DynamoDB and need no AWS account.
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.

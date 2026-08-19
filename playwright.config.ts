@@ -33,7 +33,14 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
+      // Data layer tests. They talk to a local DynamoDB they start themselves, so they run once
+      // rather than per browser.
+      name: "store",
+      testMatch: /lobbyStore\.spec\.ts/,
+    },
+    {
       name: "chromium",
+      testIgnore: /lobbyStore\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         headless: !!process.env.CI || !!process.env.PLAYWRIGHT_HEADLESS,
@@ -43,6 +50,7 @@ export default defineConfig({
 
     {
       name: "firefox",
+      testIgnore: /lobbyStore\.spec\.ts/,
       use: { ...devices["Desktop Firefox"] },
     },
 
@@ -54,6 +62,7 @@ export default defineConfig({
     /* Test against mobile viewports. */
     {
       name: "Mobile Chrome",
+      testIgnore: /lobbyStore\.spec\.ts/,
       use: { ...devices["Pixel 5"] },
     },
     // {

@@ -5,10 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "db:generate": "dotenv drizzle-kit generate:sqlite",
-    "db:migrate": "dotenv npx tsx src/server/db/index.ts",
-    "db:push": "dotenv drizzle-kit push:sqlite",
-    "db:studio": "dotenv drizzle-kit studio",
+    "ddb:create-table": "dotenv -- npx tsx scripts/create-ddb-table.ts",
+    "ddb:local": "npx dynalite --port 4567 --createTableMs 0",
+    "ddb:migrate-from-turso": "dotenv -- npx tsx scripts/migrate-turso-to-ddb.ts",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
@@ -16,9 +15,10 @@
     "test:report": "playwright show-report"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1114.0",
+    "@aws-sdk/lib-dynamodb": "^3.1114.0",
     "@clerk/nextjs": "^4.31.3",
     "@hookform/resolvers": "^3.3.4",
-    "@libsql/client": "^0.5.6",
     "@paralleldrive/cuid2": "^2.2.2",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
@@ -35,7 +35,6 @@
     "@vercel/kv": "^1.0.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "drizzle-orm": "^0.28.6",
     "next": "^14.0.3",
     "next-themes": "^0.2.1",
     "pusher": "^5.2.0",
@@ -54,6 +53,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@libsql/client": "^0.17.4",
     "@next/eslint-plugin-next": "^14.0.3",
     "@playwright/test": "^1.42.1",
     "@types/eslint": "^8.44.7",
@@ -65,12 +65,13 @@
     "autoprefixer": "^10.4.14",
     "daisyui": "^4.4.20",
     "dotenv-cli": "^7.3.0",
-    "drizzle-kit": "^0.19.13",
+    "dynalite": "^4.0.0",
     "eslint": "^8.54.0",
     "postcss": "^8.4.35",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
     "tailwindcss": "^3.3.5",
+    "tsx": "^4.23.12",
     "typescript": "^5.1.6"
   },
   "ct3aMetadata": {

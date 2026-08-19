@@ -28,7 +28,7 @@ export default function ItemDialog({
 }: {
   postUrl?: string;
   postBody?: object;
-  itemId?: number;
+  itemId?: string;
   onClose: () => void;
 }) {
   const [editMode, setEditMode] = useState(false);

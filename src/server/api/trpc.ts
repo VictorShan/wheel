@@ -10,7 +10,6 @@ import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { db } from "~/server/db/db";
 import { rateLimitPerHour } from "../utils";
 
 /**
@@ -30,7 +29,6 @@ export const createTRPCContext = async (opts: {
   userId: string | null;
 }) => {
   return {
-    db,
     ...opts,
   };
 };
