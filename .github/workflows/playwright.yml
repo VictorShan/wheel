@@ -37,7 +37,6 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
