@@ -11,11 +11,27 @@ import { createTRPCContext } from "~/server/api/trpc";
  * handling a HTTP request (e.g. when you make requests from Client Components).
  */
 const createContext = async (req: NextRequest) => {
-  const auth = getAuth(req);
   return createTRPCContext({
     headers: req.headers,
-    userId: auth.userId,
+    userId: getUserId(req),
   });
+};
+
+/**
+ * Resolving the signed-in user is best effort. `getAuth` throws when Clerk can't make sense of the
+ * request, and letting that escape would fail the whole batched request — including the public
+ * queries that render a wheel for a visitor who never signs in.
+ */
+const getUserId = (req: NextRequest) => {
+  try {
+    return getAuth(req).userId;
+  } catch (error) {
+    console.error(
+      "Failed to resolve the signed-in user:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
 };
 
 const handler = (req: NextRequest) =>
