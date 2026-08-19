@@ -23,7 +23,7 @@ const lobbyTimeout = 1000 * 60 * 60 * 24 * 7; // 7 days
  */
 function asObject(value: unknown): Record<string, unknown> {
   const parsed =
-    typeof value === "string" ? tryParseJson(value) : (value ?? null);
+    typeof value === "string" ? tryParseJson(value) : value ?? null;
   return typeof parsed === "object" && parsed !== null
     ? (parsed as Record<string, unknown>)
     : {};
@@ -113,7 +113,10 @@ export const lobbyRouter = createTRPCRouter({
       result.items.sort(
         (a, b) => b.upvotes - a.upvotes || a.longName.localeCompare(b.longName),
       );
-      return { ...result, selectWebhookBody: asObject(result.selectWebhookBody) };
+      return {
+        ...result,
+        selectWebhookBody: asObject(result.selectWebhookBody),
+      };
     }),
   spin: publicProcedure
     .input(

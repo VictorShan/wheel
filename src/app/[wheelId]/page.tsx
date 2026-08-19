@@ -61,6 +61,18 @@ export default function Page({ params }: { params: { wheelId: string } }) {
             </h1>
             <Button onClick={() => setIsEditOpen(true)}>Edit Lobby</Button>
           </div>
+          {/* Without this a failed load is indistinguishable from an empty wheel. */}
+          {lobbyInfo.isError && (
+            <p className="mt-2 text-destructive">
+              Could not load this wheel: {lobbyInfo.error.message}
+            </p>
+          )}
+          {!lobbyInfo.isLoading && !lobbyInfo.isError && !lobbyInfo.data && (
+            <p className="mt-2">
+              No wheel lives at this address. Check the link, or create a new
+              wheel from the home page.
+            </p>
+          )}
           <div className="flex flex-col justify-center md:flex-row">
             <div className="">
               <Wheel
