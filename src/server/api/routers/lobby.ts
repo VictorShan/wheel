@@ -63,7 +63,9 @@ export const lobbyRouter = createTRPCRouter({
     .query(async ({ input }) => {
       // One round trip for the wheel and every item on it.
       const lobby = await store.getLobbyWithItems(input.lobbyCuid);
-      if (!lobby) return undefined;
+      // Null, not undefined: React Query treats an undefined result as a failed query, which would
+      // put the page in its error state instead of its "no such wheel" state.
+      if (!lobby) return null;
       // Fire and forget, and only when the stamp is stale: a viewer shouldn't wait on a write
       // whose result they never see.
       store.touchLobbyRead(lobby);

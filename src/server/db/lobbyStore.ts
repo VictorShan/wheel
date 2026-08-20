@@ -116,14 +116,11 @@ function toLog(row: Row): LobbyLog {
  * The whole wheel in one round trip: the lobby row and every item, without touching the log.
  */
 export async function getLobbyWithItems(cuid: string) {
-  const result = await ddb.send(
-    new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: "pk = :pk AND sk < :logs",
-      ExpressionAttributeValues: { ":pk": lobbyPk(cuid), ":logs": LOG_PREFIX },
-    }),
-  );
-  const rows = (result.Items ?? []) as Row[];
+  const rows = await queryAllPages({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: "pk = :pk AND sk < :logs",
+    ExpressionAttributeValues: { ":pk": lobbyPk(cuid), ":logs": LOG_PREFIX },
+  });
   const lobbyRow = rows.find((row) => row.sk === LOBBY_SK);
   if (!lobbyRow) return undefined;
   return {
@@ -179,33 +176,18 @@ export async function createLobby(input: {
 
 /** Removes a wheel and everything in its partition: items, log entries and the lobby row. */
 export async function deleteLobby(cuid: string) {
-  const keys: { pk: string; sk: string }[] = [];
-  let startKey: Record<string, unknown> | undefined;
-  do {
-    const page = await ddb.send(
-      new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: "pk = :pk",
-        ExpressionAttributeValues: { ":pk": lobbyPk(cuid) },
-        ProjectionExpression: "pk, sk",
-        ExclusiveStartKey: startKey,
-      }),
-    );
-    for (const row of (page.Items ?? []) as { pk: string; sk: string }[]) {
-      keys.push({ pk: row.pk, sk: row.sk });
-    }
-    startKey = page.LastEvaluatedKey;
-  } while (startKey);
+  const rows = await queryAllPages({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: "pk = :pk",
+    ExpressionAttributeValues: { ":pk": lobbyPk(cuid) },
+    ProjectionExpression: "pk, sk",
+  });
 
-  for (let i = 0; i < keys.length; i += 25) {
-    await ddb.send(
-      new BatchWriteCommand({
-        RequestItems: {
-          [TABLE_NAME]: keys
-            .slice(i, i + 25)
-            .map((Key) => ({ DeleteRequest: { Key } })),
-        },
-      }),
+  for (let i = 0; i < rows.length; i += 25) {
+    await batchWriteAll(
+      rows
+        .slice(i, i + 25)
+        .map((row) => ({ DeleteRequest: { Key: { pk: row.pk, sk: row.sk } } })),
     );
   }
 }
@@ -376,18 +358,16 @@ export async function getItem(lobbyCuid: string, itemId: string) {
 
 /** Item ids only, for broadcasting a spin. */
 export async function listItemIds(lobbyCuid: string) {
-  const result = await ddb.send(
-    new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: "pk = :pk AND begins_with(sk, :items)",
-      ExpressionAttributeValues: {
-        ":pk": lobbyPk(lobbyCuid),
-        ":items": ITEM_PREFIX,
-      },
-      ProjectionExpression: "itemId",
-    }),
-  );
-  return ((result.Items ?? []) as Row[]).map((row) => String(row.itemId));
+  const rows = await queryAllPages({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: "pk = :pk AND begins_with(sk, :items)",
+    ExpressionAttributeValues: {
+      ":pk": lobbyPk(lobbyCuid),
+      ":items": ITEM_PREFIX,
+    },
+    ProjectionExpression: "itemId",
+  });
+  return rows.map((row) => String(row.itemId));
 }
 
 export async function appendLog(input: {
@@ -451,6 +431,54 @@ async function updateExistingItem(
   } catch (error) {
     if (isConditionalCheckFailed(error)) return undefined;
     throw error;
+  }
+}
+
+/**
+ * A query can stop at DynamoDB's 1 MB page limit, and a busy wheel's partition holds the lobby, all
+ * of its items and its whole log. Following the cursor is the difference between "every item" and
+ * "as many items as fitted", which the wheel would spin over without any sign that some are gone.
+ */
+async function queryAllPages(
+  input: ConstructorParameters<typeof QueryCommand>[0],
+): Promise<Row[]> {
+  const rows: Row[] = [];
+  let startKey: Record<string, unknown> | undefined;
+  do {
+    const page = await ddb.send(
+      new QueryCommand({ ...input, ExclusiveStartKey: startKey }),
+    );
+    rows.push(...((page.Items ?? []) as Row[]));
+    startKey = page.LastEvaluatedKey;
+  } while (startKey);
+  return rows;
+}
+
+/**
+ * BatchWrite reports the writes it declined instead of failing, and everything here shares one
+ * partition key, so a big wheel is exactly the shape that gets throttled. Rows left behind by a
+ * delete would be inherited by whoever claims the cuid next - the history the delete exists to
+ * remove - so the declined writes are resent.
+ */
+async function batchWriteAll(
+  requests: NonNullable<
+    ConstructorParameters<typeof BatchWriteCommand>[0]["RequestItems"]
+  >[string],
+) {
+  let pending = requests;
+  for (let attempt = 0; pending.length > 0; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+    }
+    if (attempt >= 6) {
+      throw new Error(
+        `DynamoDB declined ${pending.length} writes after ${attempt} attempts`,
+      );
+    }
+    const result = await ddb.send(
+      new BatchWriteCommand({ RequestItems: { [TABLE_NAME]: pending } }),
+    );
+    pending = result.UnprocessedItems?.[TABLE_NAME] ?? [];
   }
 }
 

@@ -211,6 +211,25 @@ test("deleting a wheel takes its items and log with it", async () => {
   expect(await store.listLogs(cuid)).toEqual([]);
 });
 
+test("a wheel bigger than one batch reads and deletes whole", async () => {
+  const cuid = await freshLobby();
+  // More than the 25 rows BatchWrite accepts at once, so the delete has to loop and resend.
+  const created = await Promise.all(
+    Array.from({ length: 60 }, (_, i) =>
+      store.addItem({ lobbyCuid: cuid, longName: `Item ${i}` }),
+    ),
+  );
+  expect(created).toHaveLength(60);
+
+  const lobby = await store.getLobbyWithItems(cuid);
+  expect(lobby?.items).toHaveLength(60);
+  expect(await store.listItemIds(cuid)).toHaveLength(60);
+
+  await store.deleteLobby(cuid);
+  expect(await store.getLobbyWithItems(cuid)).toBeUndefined();
+  expect(await store.listItemIds(cuid)).toEqual([]);
+});
+
 test("the webhook survives a round trip, and an unknown wheel reports back", async () => {
   const cuid = await freshLobby();
   expect(
