@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/** Tests that run in node rather than a browser: the data layer and the pure helpers. */
+const nodeTests = /(lobbyStore|safeUrl)\.spec\.ts/;
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -33,14 +36,14 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      // Data layer tests. They talk to a local DynamoDB they start themselves, so they run once
-      // rather than per browser.
+      // Data layer and helper tests. The data layer talks to a local DynamoDB it starts itself,
+      // so these run once rather than per browser.
       name: "store",
-      testMatch: /lobbyStore\.spec\.ts/,
+      testMatch: nodeTests,
     },
     {
       name: "chromium",
-      testIgnore: /lobbyStore\.spec\.ts/,
+      testIgnore: nodeTests,
       use: {
         ...devices["Desktop Chrome"],
         headless: !!process.env.CI || !!process.env.PLAYWRIGHT_HEADLESS,
@@ -50,7 +53,7 @@ export default defineConfig({
 
     {
       name: "firefox",
-      testIgnore: /lobbyStore\.spec\.ts/,
+      testIgnore: nodeTests,
       use: { ...devices["Desktop Firefox"] },
     },
 
@@ -62,7 +65,7 @@ export default defineConfig({
     /* Test against mobile viewports. */
     {
       name: "Mobile Chrome",
-      testIgnore: /lobbyStore\.spec\.ts/,
+      testIgnore: nodeTests,
       use: { ...devices["Pixel 5"] },
     },
     // {

@@ -69,6 +69,28 @@ function text(value: unknown) {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+let droppedUrls = 0;
+
+/**
+ * The old schema never checked what went into a url column, so it can hold anything a signed-in
+ * user typed - including `javascript:`, which the item dialog would render as a live link. The app
+ * only accepts http(s) now, and the copy has to hold that line too rather than carrying an
+ * unusable value into the new store.
+ */
+function httpUrl(value: unknown) {
+  const url = text(value);
+  if (url === undefined) return undefined;
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === "http:" || protocol === "https:") return url;
+  } catch {
+    // Not a URL at all.
+  }
+  droppedUrls++;
+  console.warn(`Dropped a url that is not http(s): ${JSON.stringify(url)}`);
+  return undefined;
+}
+
 const rows: Record<string, unknown>[] = [];
 const now = new Date().toISOString();
 
@@ -84,7 +106,7 @@ for (const lobby of lobbies.rows) {
     createdAt: toIso(lobby.created_at, now),
     updatedAt: toIso(lobby.updatedAt, now),
     lastReadAt: toIso(lobby.last_read_at, now),
-    selectWebhookUrl: text(lobby.select_webhook_url),
+    selectWebhookUrl: httpUrl(lobby.select_webhook_url),
     selectWebhookBody: asObject(lobby.select_webhook_body),
   });
 }
@@ -99,8 +121,8 @@ for (const item of items.rows) {
     lobbyCuid: String(item.lobby_cuid),
     longName: String(item.name),
     shortName: text(item.short_name),
-    url: text(item.url),
-    imageUrl: text(item.image_url),
+    url: httpUrl(item.url),
+    imageUrl: httpUrl(item.image_url),
     createdAt: toIso(item.created_at, now),
     updatedAt: toIso(item.updated_at, now),
     upvotes: Number(item.upvotes ?? 0),
@@ -125,6 +147,9 @@ for (const log of logs.rows) {
 console.log(
   `Read ${lobbies.rows.length} lobbies, ${items.rows.length} items, ${logs.rows.length} log entries`,
 );
+if (droppedUrls > 0) {
+  console.log(`Dropped ${droppedUrls} url(s) that were not http(s)`);
+}
 
 if (dryRun) {
   console.log("Dry run: nothing written. First row would be:");

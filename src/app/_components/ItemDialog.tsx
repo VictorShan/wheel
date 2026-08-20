@@ -19,6 +19,7 @@ import { Pencil2Icon } from "@radix-ui/react-icons";
 import { Input } from "~/components/ui/input";
 import { SignInPrompt } from "./SignInPrompt";
 import { formatTimestamp } from "./formatTimestamp";
+import { safeUrl } from "./safeUrl";
 
 export default function ItemDialog({
   itemId,
@@ -143,6 +144,7 @@ export default function ItemDialog({
   }
 
   const isVoting = upvoteItem.isLoading || downvoteItem.isLoading;
+  const linkUrl = safeUrl(item.url);
 
   return (
     <Dialog
@@ -256,9 +258,9 @@ export default function ItemDialog({
             </>
           ) : (
             <>
-              {item.url ? (
+              {linkUrl ? (
                 <Button asChild>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                  <a href={linkUrl} target="_blank" rel="noopener noreferrer">
                     Open Link
                   </a>
                 </Button>
