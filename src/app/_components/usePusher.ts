@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Channel } from "pusher-js";
 import { PusherClient } from "~/config/PusherClient";
 
@@ -9,12 +9,18 @@ export function usePusher(
   callback: (data: any) => void,
 ) {
   const [channel, setChannel] = useState<Channel>();
+  // The subscription is only rebuilt when the channel or event changes, so binding `callback`
+  // directly would pin the handler to whatever closure the first render happened to create.
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
   useEffect(() => {
     const channel = PusherClient.subscribe(channelName);
-    channel.bind(eventName, callback);
+    const handler = (data: unknown) => callbackRef.current(data);
+    channel.bind(eventName, handler);
     setChannel(channel);
     return () => {
-      channel.unbind(eventName);
+      channel.unbind(eventName, handler);
       PusherClient.unsubscribe(channelName);
     };
   }, [channelName, eventName]);

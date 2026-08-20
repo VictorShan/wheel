@@ -6,11 +6,10 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { db } from "~/server/db/db";
 import { rateLimitPerHour } from "../utils";
 
 /**
@@ -30,7 +29,6 @@ export const createTRPCContext = async (opts: {
   userId: string | null;
 }) => {
   return {
-    db,
     ...opts,
   };
 };
@@ -84,7 +82,12 @@ export const publicProcedure = t.procedure;
  */
 const isAuthed = t.middleware(async ({ next, ctx }) => {
   if (!ctx.userId) {
-    throw new Error("Not authenticated");
+    // Must be a TRPCError: anything else is reported to the client as a 500 "Internal server
+    // error", which tells the visitor nothing about needing to sign in.
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Sign in to do that",
+    });
   }
   // await rateLimitPerHour(ctx.userId, "authenticatedOperation", 50);
   return next({

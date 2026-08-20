@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ItemsContext } from "./providers";
 import {
   Dialog,
@@ -14,9 +14,12 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { replaceConstants } from "~/config/postRequestUtils";
-import { useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { Input } from "~/components/ui/input";
+import { SignInPrompt } from "./SignInPrompt";
+import { formatTimestamp } from "./formatTimestamp";
+import { safeUrl } from "./safeUrl";
 
 export default function ItemDialog({
   itemId,
@@ -26,16 +29,24 @@ export default function ItemDialog({
 }: {
   postUrl?: string;
   postBody?: object;
-  itemId?: number;
+  itemId?: string;
   onClose: () => void;
 }) {
   const [editMode, setEditMode] = useState(false);
   const items = useContext(ItemsContext);
   const item = items?.find((item) => item.id === itemId);
-  const nameRef = useRef<string | undefined>(undefined);
-  const urlRef = useRef<string | undefined>(undefined);
-  nameRef.current = item?.longName ?? item?.shortName ?? undefined;
-  urlRef.current = item?.url ?? undefined;
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const utils = api.useUtils();
+  const lobbyCuid = item?.lobbyCuid;
+
+  // Reset the draft whenever a different item is opened, and drop out of edit mode with it.
+  useEffect(() => {
+    setName(item?.longName ?? item?.shortName ?? "");
+    setUrl(item?.url ?? "");
+    setEditMode(false);
+  }, [item?.id, item?.longName, item?.shortName, item?.url]);
+
   const auth = useUser();
   const userString =
     auth.user?.fullName ??
@@ -44,12 +55,25 @@ export default function ItemDialog({
     auth.user?.username ??
     undefined;
   const itemName = item?.longName ?? item?.shortName;
+
+  /**
+   * Every mutation refetches the lobby. Without this the person who acted saw their own change only
+   * if the realtime broadcast made it back to them - so votes appeared not to register.
+   */
+  const refetchLobby = async () => {
+    if (!lobbyCuid) return;
+    await Promise.all([
+      utils.lobbies.getLobbyInfo.invalidate({ lobbyCuid }),
+      utils.lobbyLogs.getLogs.invalidate({ lobbyCuid }),
+    ]);
+  };
+
   const selectItem = api.items.selectItem.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast(`${itemName} selected`);
+      await refetchLobby();
       onClose();
       if (postUrl === undefined) {
-        toast("No POST URL provided");
         return;
       }
       if (!userString || !itemName) {
@@ -70,7 +94,7 @@ export default function ItemDialog({
         headers: {
           "Content-Type": "application/json",
         },
-        body: transformBody(JSON.stringify(postBody) ?? "{}"),
+        body: transformBody(JSON.stringify(postBody ?? {})),
       })
         .then(() => {
           toast("POST request sent");
@@ -85,25 +109,29 @@ export default function ItemDialog({
     },
   });
   const upvoteItem = api.items.upvoteItem.useMutation({
+    onSuccess: refetchLobby,
     onError: (error) => {
       toast(error.message);
     },
   });
   const downvoteItem = api.items.downvoteItem.useMutation({
+    onSuccess: refetchLobby,
     onError: (error) => {
       toast(error.message);
     },
   });
   const updateItem = api.items.updateItem.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       setEditMode(false);
+      await refetchLobby();
     },
     onError: (error) => {
       toast(error.message);
     },
   });
   const removeItem = api.items.removeItem.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refetchLobby();
       onClose();
     },
     onError: (error) => {
@@ -111,9 +139,12 @@ export default function ItemDialog({
     },
   });
 
-  if (!item) {
+  if (!item || !lobbyCuid) {
     return <></>;
   }
+
+  const isVoting = upvoteItem.isLoading || downvoteItem.isLoading;
+  const linkUrl = safeUrl(item.url);
 
   return (
     <Dialog
@@ -130,78 +161,73 @@ export default function ItemDialog({
             <div className="w-full">
               <Input
                 className="mt-2"
-                placeholder={nameRef.current ?? "Item Name"}
-                onChange={(e) => {
-                  nameRef.current = e.target.value;
-                }}
+                placeholder="Item Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
               <Input
-                placeholder={item.url ?? "URL"}
-                onChange={(e) => {
-                  urlRef.current = e.target.value;
-                }}
+                type="text"
+                inputMode="url"
+                placeholder="URL (optional)"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
               />
             </div>
           ) : (
             <>
-              <h1 className="my-2 text-2xl">{nameRef.current}</h1>
-              <Button
-                className="mx-2 my-2"
-                variant="ghost"
-                onClick={() => setEditMode(true)}
-              >
-                <Pencil2Icon />
-              </Button>
+              <h1 className="my-2 text-2xl">{itemName}</h1>
+              <SignedIn>
+                <Button
+                  className="mx-2 my-2"
+                  variant="ghost"
+                  onClick={() => setEditMode(true)}
+                >
+                  <Pencil2Icon />
+                </Button>
+              </SignedIn>
             </>
           )}
         </DialogHeader>
-        <DialogDescription>
-          <p>
-            Last ordered:{" "}
-            {new Date(item.lastSelectedAt).toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+        <DialogDescription asChild>
+          <div>
+            <p>Last ordered: {formatTimestamp(item.lastSelectedAt)}</p>
+          </div>
         </DialogDescription>
         <div className="flex items-center justify-between">
           <p>Upvotes: {item.upvotes ?? 0}</p>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                upvoteItem.mutate({
-                  itemId: itemId!,
-                  lobbyCuid: item.lobbyCuid,
-                });
-              }}
-            >
-              +
-            </Button>
-            <Button
-              onClick={() => {
-                downvoteItem.mutate({
-                  itemId: itemId!,
-                  lobbyCuid: item.lobbyCuid,
-                });
-              }}
-            >
-              -
-            </Button>
-          </div>
+          <SignedIn>
+            <div className="flex gap-2">
+              <Button
+                disabled={isVoting}
+                onClick={() => {
+                  upvoteItem.mutate({ itemId: item.id, lobbyCuid });
+                }}
+              >
+                +
+              </Button>
+              <Button
+                disabled={isVoting}
+                onClick={() => {
+                  downvoteItem.mutate({ itemId: item.id, lobbyCuid });
+                }}
+              >
+                -
+              </Button>
+            </div>
+          </SignedIn>
         </div>
+        <SignedOut>
+          <SignInPrompt action="vote on items and pick one" />
+        </SignedOut>
         <DialogFooter className="flex flex-col gap-2 md:flex-row">
           {editMode ? (
             <>
               <Button
                 onClick={() => {
-                  removeItem.mutate({
-                    itemId: itemId!,
-                    lobbyCuid: item.lobbyCuid,
-                  });
+                  removeItem.mutate({ itemId: item.id, lobbyCuid });
                 }}
                 variant="destructive"
+                disabled={removeItem.isLoading}
               >
                 Delete Item
               </Button>
@@ -209,21 +235,21 @@ export default function ItemDialog({
                 variant="secondary"
                 onClick={() => {
                   setEditMode(false);
-                  if (nameRef.current !== item.longName) {
-                    nameRef.current =
-                      item.longName ?? item.shortName ?? undefined;
-                  }
+                  setName(item.longName ?? item.shortName ?? "");
+                  setUrl(item.url ?? "");
                 }}
               >
                 Cancel
               </Button>
               <Button
+                disabled={updateItem.isLoading || name.trim().length === 0}
                 onClick={() => {
                   updateItem.mutate({
-                    lobbyCuid: item.lobbyCuid,
-                    itemId: itemId!,
-                    longName: nameRef.current ?? item.longName,
-                    url: urlRef.current ?? undefined,
+                    lobbyCuid,
+                    itemId: item.id,
+                    longName: name.trim(),
+                    // Sent as "" when cleared, which the router stores as NULL.
+                    url: url.trim(),
                   });
                 }}
               >
@@ -232,26 +258,26 @@ export default function ItemDialog({
             </>
           ) : (
             <>
-              <Button disabled={!item.url}>
-                <a
-                  href={item.url ?? ""}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {linkUrl ? (
+                <Button asChild>
+                  <a href={linkUrl} target="_blank" rel="noopener noreferrer">
+                    Open Link
+                  </a>
+                </Button>
+              ) : (
+                <Button disabled>Open Link</Button>
+              )}
+              <SignedIn>
+                <Button
+                  className="btn"
+                  disabled={selectItem.isLoading}
+                  onClick={() => {
+                    selectItem.mutate({ itemId: item.id, lobbyCuid });
+                  }}
                 >
-                  Open Link
-                </a>
-              </Button>
-              <Button
-                className="btn"
-                onClick={() => {
-                  selectItem.mutate({
-                    itemId: itemId!,
-                    lobbyCuid: item.lobbyCuid,
-                  });
-                }}
-              >
-                Select
-              </Button>
+                  Select
+                </Button>
+              </SignedIn>
               <DialogClose asChild>
                 <Button className="btn">Close</Button>
               </DialogClose>

@@ -1,176 +1,127 @@
 import { z } from "zod";
 import { authenticatedProcedure, createTRPCRouter } from "~/server/api/trpc";
-import { lobbies, items, lobbyLogs } from "~/server/db/schema";
-import { eq } from "drizzle-orm";
-import { PusherServer } from "~/config/PusherServer";
-import { ITEM_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
-import { TRPCClientError } from "@trpc/client";
+import { ITEM_EVENT } from "~/config/PusherConstants";
+import { TRPCError } from "@trpc/server";
+import { broadcastToLobby } from "~/config/broadcast";
+import * as store from "~/server/db/lobbyStore";
 // import { rateLimitPerHour } from "~/server/utils";
+
+function isHttpUrl(value: string) {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A URL field that may be left blank. Blank input becomes `undefined` rather than `""` so the
+ * attribute is absent and the item stays editable later.
+ */
+const optionalUrl = z
+  .string()
+  .trim()
+  .transform((value) => (value.length === 0 ? undefined : value))
+  .refine((value) => value === undefined || isHttpUrl(value), {
+    message: "Enter a full URL, including https://",
+  })
+  .optional();
+
+const itemNotFound = (itemId: string) =>
+  new TRPCError({ code: "NOT_FOUND", message: `Item ${itemId} not found` });
 
 export const itemRouter = createTRPCRouter({
   updateItem: authenticatedProcedure
     .input(
       z.object({
         lobbyCuid: z.string(),
-        itemId: z.number(),
-        longName: z.string().min(1),
-        url: z.string().url().optional(),
+        itemId: z.string(),
+        longName: z.string().trim().min(1),
+        url: optionalUrl,
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(items)
-        .set({
-          longName: input.longName,
-          url: input.url,
-        })
-        .where(eq(items.id, input.itemId))
-        .execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: input.itemId,
-        },
-      );
+    .mutation(async ({ input }) => {
+      const item = await store.updateItem({
+        lobbyCuid: input.lobbyCuid,
+        itemId: input.itemId,
+        longName: input.longName,
+        url: input.url ?? null,
+      });
+      if (!item) throw itemNotFound(input.itemId);
+      await broadcastToLobby(input.lobbyCuid, ITEM_EVENT, { item });
+      return item;
     }),
   addItem: authenticatedProcedure
     .input(
       z.object({
         lobbyCuid: z.string(),
         item: z.object({
-          longName: z.string().min(1),
-          shortName: z.string().min(1).optional(),
-          url: z.string().optional(),
-          imageUrl: z.string().optional(),
+          longName: z.string().trim().min(1),
+          shortName: z.string().trim().min(1).optional(),
+          url: optionalUrl,
+          imageUrl: optionalUrl,
         }),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      const lobby = await ctx.db.query.lobbies.findFirst({
-        where: eq(lobbies.cuid, input.lobbyCuid),
-      });
+    .mutation(async ({ input }) => {
+      const lobby = await store.getLobby(input.lobbyCuid);
       if (!lobby) {
-        throw new Error("Lobby not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lobby not found" });
       }
-      const item = await ctx.db
-        .insert(items)
-        .values({
-          lobbyCuid: input.lobbyCuid,
-          longName: input.item.longName,
-          shortName: input.item.shortName,
-          url: input.item.url,
-          imageUrl: input.item.imageUrl,
-          lastSelectedAt: new Date(1000).toString(), // Earliest possible date
-        })
-        .execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: item.rows[0],
-        },
-      );
+      const item = await store.addItem({
+        lobbyCuid: input.lobbyCuid,
+        longName: input.item.longName,
+        shortName: input.item.shortName,
+        url: input.item.url,
+        imageUrl: input.item.imageUrl,
+      });
+      await broadcastToLobby(input.lobbyCuid, ITEM_EVENT, { item });
       return item;
     }),
   removeItem: authenticatedProcedure
     .input(
       z.object({
         lobbyCuid: z.string(),
-        itemId: z.number(),
+        itemId: z.string(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(items).where(eq(items.id, input.itemId)).execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: input.itemId,
-        },
-      );
+    .mutation(async ({ input }) => {
+      await store.removeItem(input.lobbyCuid, input.itemId);
+      await broadcastToLobby(input.lobbyCuid, ITEM_EVENT, {
+        item: input.itemId,
+      });
     }),
   selectItem: authenticatedProcedure
-    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .input(z.object({ itemId: z.string(), lobbyCuid: z.string() }))
+    .mutation(async ({ input }) => {
       // await rateLimitPerHour(ctx.userId!, "selectItem", 3);
-      const item = await ctx.db.query.items.findFirst({
-        where: eq(items.id, input.itemId),
-      });
-      if (!item) {
-        throw new TRPCClientError(`Item ${input.itemId} not found`);
-      }
-      await ctx.db
-        .update(items)
-        .set({
-          lastSelectedAt: new Date().toString(),
-        })
-        .where(eq(items.id, input.itemId))
-        .execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: item,
-        },
-      );
-      await ctx.db.insert(lobbyLogs).values({
+      const item = await store.selectItem(input.lobbyCuid, input.itemId);
+      if (!item) throw itemNotFound(input.itemId);
+      // The log is part of what "selecting" means, so write it with the selection. Broadcasting is
+      // only a notification and happens afterwards.
+      await store.appendLog({
         lobbyCuid: input.lobbyCuid,
-        timestamp: new Date().toString(),
+        timestamp: item.lastSelectedAt,
         data: {
           action: "selectItem",
-          message: `Item ${item.longName || item.shortName} selected`,
+          message: `${item.longName || item.shortName} selected`,
         },
       });
+      await broadcastToLobby(input.lobbyCuid, ITEM_EVENT, { item });
+      return item;
     }),
   upvoteItem: authenticatedProcedure
-    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const item = await ctx.db.query.items.findFirst({
-        where: eq(items.id, input.itemId),
-      });
-      if (!item) {
-        throw new TRPCClientError(`Item ${input.itemId} not found`);
-      }
-      item.upvotes += 1;
-      await ctx.db
-        .update(items)
-        .set({
-          upvotes: item.upvotes,
-        })
-        .where(eq(items.id, input.itemId))
-        .execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: item,
-        },
-      );
-    }),
+    .input(z.object({ itemId: z.string(), lobbyCuid: z.string() }))
+    .mutation(({ input }) => vote(input.lobbyCuid, input.itemId, 1)),
   downvoteItem: authenticatedProcedure
-    .input(z.object({ itemId: z.number(), lobbyCuid: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const item = await ctx.db.query.items.findFirst({
-        where: eq(items.id, input.itemId),
-      });
-      if (!item) {
-        throw new TRPCClientError(`Item ${input.itemId} not found`);
-      }
-      item.upvotes -= 1;
-      await ctx.db
-        .update(items)
-        .set({
-          upvotes: item.upvotes,
-        })
-        .where(eq(items.id, input.itemId))
-        .execute();
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        ITEM_EVENT,
-        {
-          item: item,
-        },
-      );
-    }),
+    .input(z.object({ itemId: z.string(), lobbyCuid: z.string() }))
+    .mutation(({ input }) => vote(input.lobbyCuid, input.itemId, -1)),
 });
+
+async function vote(lobbyCuid: string, itemId: string, delta: 1 | -1) {
+  const item = await store.voteOnItem(lobbyCuid, itemId, delta);
+  if (!item) throw itemNotFound(itemId);
+  await broadcastToLobby(lobbyCuid, ITEM_EVENT, { item });
+  return item;
+}

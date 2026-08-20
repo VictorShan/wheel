@@ -25,7 +25,16 @@ const createContext = cache(async () => {
       cookie: cookies().toString(),
       "x-trpc-source": "rsc",
     }),
-    userId: await currentUser().then((user) => user?.id ?? null),
+    // Best effort, as in the HTTP handler: a Clerk failure must not take down public reads.
+    userId: await currentUser()
+      .then((user) => user?.id ?? null)
+      .catch((error) => {
+        console.error(
+          "Failed to resolve the signed-in user:",
+          error instanceof Error ? error.message : error,
+        );
+        return null;
+      }),
   });
 });
 

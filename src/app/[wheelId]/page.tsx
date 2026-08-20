@@ -12,9 +12,10 @@ import ItemDialog from "../_components/ItemDialog";
 import LobbySettings from "../_components/LobbySettings";
 import { Button } from "~/components/ui/button";
 import ItemTable from "../_components/ItemTable";
+import { itemWeight } from "../_components/wheelWeights";
 
 export default function Page({ params }: { params: { wheelId: string } }) {
-  const [itemId, setItemId] = useState<{ id: number }>();
+  const [itemId, setItemId] = useState<{ id: string }>();
   const [wheelItems, setItems] = useState<WheelItem[]>([]);
   const [willShuffle, setWillShuffle] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -60,6 +61,18 @@ export default function Page({ params }: { params: { wheelId: string } }) {
             </h1>
             <Button onClick={() => setIsEditOpen(true)}>Edit Lobby</Button>
           </div>
+          {/* Without this a failed load is indistinguishable from an empty wheel. */}
+          {lobbyInfo.isError && (
+            <p className="mt-2 text-destructive">
+              Could not load this wheel: {lobbyInfo.error.message}
+            </p>
+          )}
+          {!lobbyInfo.isLoading && !lobbyInfo.isError && !lobbyInfo.data && (
+            <p className="mt-2">
+              No wheel lives at this address. Check the link, or create a new
+              wheel from the home page.
+            </p>
+          )}
           <div className="flex flex-col justify-center md:flex-row">
             <div className="">
               <Wheel
@@ -112,24 +125,13 @@ function generateWheelItems(
   items: Item[] | undefined,
   selectItem: (i: number) => void,
 ): WheelItem[] {
-  const wheelItems: WheelItem[] = [];
-  const minimumWeight =
-    items?.reduce((acc, item) => {
-      return Math.min(acc, item.upvotes);
-    }, Infinity) ?? 1;
-  items?.forEach((item, i) => {
-    const dateDiff = Date.now() - new Date(item.lastSelectedAt).getTime();
-    const daysSinceLastSelected = Math.ceil(dateDiff / (1000 * 60 * 60 * 24));
-    const daysSinceLastSelectedWeight = Math.min(1, daysSinceLastSelected / 5);
-    const weight = item.upvotes - minimumWeight + 1; // Minimum weight will be 1
-
-    wheelItems.push({
+  const wheelItems: WheelItem[] =
+    items?.map((item, i) => ({
       longName: item.longName,
       shortName: item.shortName,
-      weight: weight * daysSinceLastSelectedWeight,
+      weight: itemWeight(item),
       callback: () => selectItem(i),
-    });
-  });
+    })) ?? [];
   if (wheelItems.length === 0) return randomItems;
   return wheelItems;
 }

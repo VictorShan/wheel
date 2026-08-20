@@ -4,11 +4,11 @@ import {
   createTRPCRouter,
   publicProcedure,
 } from "~/server/api/trpc";
-import { lobbies, items } from "~/server/db/schema";
 import { init } from "@paralleldrive/cuid2";
-import { eq } from "drizzle-orm";
-import { PusherServer } from "~/config/PusherServer";
-import { SPIN_EVENT, getLobbyChannelName } from "~/config/PusherConstants";
+import { SPIN_EVENT } from "~/config/PusherConstants";
+import { TRPCError } from "@trpc/server";
+import { broadcastToLobby } from "~/config/broadcast";
+import * as store from "~/server/db/lobbyStore";
 
 const create = init({
   fingerprint: "lobby",
@@ -16,58 +16,64 @@ const create = init({
 });
 const lobbyTimeout = 1000 * 60 * 60 * 24 * 7; // 7 days
 const retries = 5;
+
 export const lobbyRouter = createTRPCRouter({
   createLobby: authenticatedProcedure
     .input(
-      z.object({ name: z.string().min(1), description: z.string().nullable() }),
+      z.object({
+        name: z.string().trim().min(1),
+        description: z.string().nullable(),
+      }),
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       for (let i = 0; i < retries; i++) {
         const newCuid = create();
-        const foundLobby = await ctx.db.query.lobbies.findFirst({
-          where: eq(lobbies.cuid, newCuid),
-        });
-        if (foundLobby) {
-          const createdAt = new Date(foundLobby.createdAt);
-          const now = new Date();
-          const diff = now.getTime() - createdAt.getTime();
-          if (diff > lobbyTimeout) {
-            // found lobby has expired
-            await ctx.db
-              .delete(lobbies)
-              .where(eq(lobbies.cuid, foundLobby.cuid))
-              .execute();
-            await ctx.db
-              .delete(items)
-              .where(eq(items.lobbyCuid, foundLobby.cuid))
-              .execute();
-          } else {
-            continue; // found lobby but already being used
-          }
-        }
-
-        await ctx.db.insert(lobbies).values({
+        const claim = await store.createLobby({
           cuid: newCuid,
           name: input.name,
           description: input.description,
         });
-        return newCuid;
+        if (claim === "created") return newCuid;
+
+        // Taken. Reclaim it only if whoever had it is long gone.
+        const existing = await store.getLobby(newCuid);
+        if (!existing) continue;
+        const age = Date.now() - Date.parse(existing.createdAt);
+        if (!Number.isNaN(age) && age > lobbyTimeout) {
+          // Takes the items and the log with it, so the next owner of this cuid doesn't inherit
+          // the previous wheel's history.
+          await store.deleteLobby(newCuid);
+          const retry = await store.createLobby({
+            cuid: newCuid,
+            name: input.name,
+            description: input.description,
+          });
+          if (retry === "created") return newCuid;
+        }
       }
+      // Returning undefined here would send the browser to /undefined, which renders as a
+      // plausible empty wheel.
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Could not find a free wheel address. Please try again.",
+      });
     }),
   getLobbyInfo: publicProcedure
     .input(z.object({ lobbyCuid: z.string() }))
-    .query(async ({ ctx, input }) => {
-      await ctx.db.update(lobbies).set({
-        lastReadAt: new Date().toString(),
-      });
-      const result = await ctx.db.query.lobbies.findFirst({
-        where: eq(lobbies.cuid, input.lobbyCuid),
-        with: {
-          items: true,
-        },
-      });
-      result?.items.sort((a, b) => a.upvotes - b.upvotes);
-      return result;
+    .query(async ({ input }) => {
+      // One round trip for the wheel and every item on it.
+      const lobby = await store.getLobbyWithItems(input.lobbyCuid);
+      // Null, not undefined: React Query treats an undefined result as a failed query, which would
+      // put the page in its error state instead of its "no such wheel" state.
+      if (!lobby) return null;
+      // Fire and forget, and only when the stamp is stale: a viewer shouldn't wait on a write
+      // whose result they never see.
+      store.touchLobbyRead(lobby);
+      // Best first, with a stable tiebreak so the table doesn't reshuffle between refetches.
+      lobby.items.sort(
+        (a, b) => b.upvotes - a.upvotes || a.longName.localeCompare(b.longName),
+      );
+      return lobby;
     }),
   spin: publicProcedure
     .input(
@@ -78,42 +84,48 @@ export const lobbyRouter = createTRPCRouter({
         seed: z.number().optional(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      const itemIds = (
-        await ctx.db.query.items.findMany({
-          where: eq(items.lobbyCuid, input.lobbyCuid),
-        })
-      ).map((item) => item.id);
+    .mutation(async ({ input }) => {
+      const itemIds = await store.listItemIds(input.lobbyCuid);
       const spin = {
         itemIds: itemIds.sort(),
         intialRotation: input.initialRotation,
         initialVelocity: input.initialVelocity,
       };
-      await PusherServer.trigger(
-        getLobbyChannelName(input.lobbyCuid),
-        SPIN_EVENT,
-        {
-          spin,
-          seed: input.seed,
-        },
-      );
+      await broadcastToLobby(input.lobbyCuid, SPIN_EVENT, {
+        spin,
+        seed: input.seed,
+      });
     }),
   updatePostRequest: authenticatedProcedure
     .input(
       z.object({
         lobbyId: z.string(),
-        postRequestBody: z.string(),
+        postRequestBody: z
+          .string()
+          .transform((value, ctx) => {
+            try {
+              return JSON.parse(value) as unknown;
+            } catch {
+              // An unguarded JSON.parse here answered a bad body with a 500.
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Post body must be valid JSON",
+              });
+              return z.NEVER;
+            }
+          })
+          .pipe(z.record(z.unknown())),
         postRequestUrl: z.string().url(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .update(lobbies)
-        .set({
-          selectWebhookUrl: input.postRequestUrl,
-          selectWebhookBody: JSON.parse(input.postRequestBody),
-        })
-        .where(eq(lobbies.cuid, input.lobbyId))
-        .execute();
+    .mutation(async ({ input }) => {
+      const updated = await store.updateLobbyWebhook({
+        cuid: input.lobbyId,
+        selectWebhookUrl: input.postRequestUrl,
+        selectWebhookBody: input.postRequestBody,
+      });
+      if (!updated) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lobby not found" });
+      }
     }),
 });

@@ -71,17 +71,17 @@ export default function Wheel({
   const selectItem = () => {
     // Selects the item that is at the right of the wheel
     const angle = (360 - rotation.current) % 360;
-    const total = getTotalWeight(itemsRef.current);
+    const fractions = getSliceFractions(itemsRef.current);
     let startAngle = 0;
     let endAngle = 0;
-    itemsRef.current.forEach((item) => {
+    for (const [i, item] of itemsRef.current.entries()) {
       startAngle = endAngle;
-      endAngle = startAngle + (item.weight / total) * 360;
+      endAngle = startAngle + fractions[i]! * 360;
       if (angle >= startAngle && angle < endAngle) {
         item.callback();
         return;
       }
-    });
+    }
   };
 
   const spin = () => {
@@ -148,7 +148,7 @@ export default function Wheel({
     const radius = width / 2;
     const centerX = width / 2;
     const centerY = height / 2;
-    const total = getTotalWeight(items);
+    const fractions = getSliceFractions(items);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -156,7 +156,7 @@ export default function Wheel({
     let endAngle = 0;
     items.forEach((item, i) => {
       startAngle = endAngle;
-      endAngle = startAngle + (item.weight / total) * 2 * Math.PI;
+      endAngle = startAngle + fractions[i]! * 2 * Math.PI;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
       ctx.lineTo(centerX, centerY);
@@ -202,8 +202,22 @@ export default function Wheel({
   );
 }
 
-function getTotalWeight(items: WheelItem[]) {
-  return items.reduce((acc, item) => acc + item.weight, 0);
+/**
+ * Each item's share of the wheel, as fractions that always sum to 1.
+ *
+ * Guards the two ways the canvas used to end up blank: a single unusable weight (NaN from an
+ * unparseable date, or a negative one) poisoned the total and every slice with it, and a total of
+ * zero divided every angle by zero. Either way the fallback is equal slices.
+ */
+function getSliceFractions(items: WheelItem[]) {
+  const weights = items.map((item) =>
+    Number.isFinite(item.weight) && item.weight > 0 ? item.weight : 0,
+  );
+  const total = weights.reduce((acc, weight) => acc + weight, 0);
+  if (total <= 0) {
+    return items.map(() => (items.length === 0 ? 0 : 1 / items.length));
+  }
+  return weights.map((weight) => weight / total);
 }
 
 function getRandomGenerator(s: number) {
